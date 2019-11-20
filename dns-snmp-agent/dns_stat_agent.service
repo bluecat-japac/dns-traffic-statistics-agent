@@ -1,0 +1,17 @@
+# Copyright 2019 BlueCat Networks (USA) Inc. and its affiliates. All Rights Reserved.
+[Unit]
+Description=DNS Traffic Statistics SNMP Agent
+BindsTo=snmp.service
+After=snmp.service
+StartLimitIntervalSec=60s
+StartLimitBurst=20
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python /opt/dns-snmp-agent/dns_stat_agent.py
+Restart=always
+RestartSec=1s
+
+[Install]
+WantedBy=snmp.service
+

@@ -1,0 +1,448 @@
+-- Copyright 2019 BlueCat Networks. All rights reserved.
+-- *****************************************************************
+-- BCN-DNS-AGENT-MIB.mib:  BlueCat Networks DNS Traffic Statistics Agent
+--
+--
+-- June 2019, Michael Nonweiler
+--
+-- All rights reserved.
+-- 
+-- *****************************************************************
+
+BCN-DNS-AGENT-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-IDENTITY,
+    OBJECT-TYPE, Integer32, Counter64
+        FROM SNMPv2-SMI
+    TEXTUAL-CONVENTION, DisplayString
+        FROM SNMPv2-TC
+    InetAddress
+        FROM INET-ADDRESS-MIB
+    bcnContrib
+        FROM BCN-SMI-MIB;
+
+-- Definition of MIB's root nodes
+-- ***************************************************
+bcnDnsStatAgent             OBJECT IDENTIFIER ::= { bcnContrib 2 }
+-- ***************************************************
+
+bcnDnsStatAgentMIB MODULE-IDENTITY
+    LAST-UPDATED	"201906201200Z"
+    ORGANIZATION	"BlueCat Networks"
+    CONTACT-INFO
+        "BlueCat Networks. Customer Care.
+
+        Email: support@bluecatnetworks.com"
+    DESCRIPTION
+        "This module provides statistical information reported by the DNS Traffic Statistics Agent."
+    REVISION "201906201200Z"
+    DESCRIPTION
+        "Initial version of this MIB module."
+    ::= { bcnDnsStatAgent 1 }
+
+-- Organization
+-- ***************************************************
+bcnDnsAgentStatistics 					  OBJECT IDENTIFIER   ::= { bcnDnsStatAgent 2 }
+bcnDnsStatAgentPerClientIP                OBJECT IDENTIFIER   ::= { bcnDnsAgentStatistics 1 }
+bcnDnsStatAgentPerServerIP                OBJECT IDENTIFIER   ::= { bcnDnsAgentStatistics 2 }
+bcnDnsStatAgentPerView                    OBJECT IDENTIFIER   ::= { bcnDnsAgentStatistics 3 }
+bcnDnsBindStatAgentPerView                OBJECT IDENTIFIER   ::= { bcnDnsAgentStatistics 4 }
+-- ***************************************************
+
+-- Data objects
+-- ***************************************************
+BcnDnsStatAgentQryTypes   ::= TEXTUAL-CONVENTION
+    STATUS current
+    DESCRIPTION
+        "The statistic types supported by the DNS Traffic Statistics Agent,
+		in which:
+			TotalQueries: Total number of queries received from the Client or sent to the Server
+			TotalResponses: Total number of responses sent to the Client or received from the Server
+			QryReferral: Queries that resulted in referral answer
+			QryNxrrset: Queries that resulted in a NoError response with no answers
+			QryNXDOMAIN: Queries that resulted in an NXDOMAIN response
+			QryRecursive: Queries which caused the server to perform recursion lookups in
+			order to find the final answer
+			QrySuccess: Queries that resulted in a successful answer
+			QryFORMERR: Queries that resulted in FORMERR responses
+			QrySERVFAIL: Queries that resulted in SERVFAIL responses
+			QryDuplicate: Queries which the server attempted to recurse but discovered 
+			an existing query with the same IP address, port, query ID, name, type 
+			and class already being processed
+			QryREFUSED: Queries that resulted in SERVFAIL responses
+			QryOtherRcode: Queries that resulted in other Rcode which are not NoError, NXDOMAIN, FORMERR, SERVFAIL, REFUSED
+            QrySuccessfulRecursive: Recursive queries that resulted in NOERROR responses and answer section is not empty. Only applicable for per client statistics
+            QrySuccessfulNoauthAns: Queries that resulted in successful noAuthAns responses"
+    SYNTAX  Integer32 {
+        bcnDnsStatAgentTotalQueries(1),
+        bcnDnsStatAgentTotalResponses(2),
+        bcnDnsStatAgentQryReferral(3),
+        bcnDnsStatAgentQryNXRRSET(4),
+        bcnDnsStatAgentQryNXDOMAIN (5),
+        bcnDnsStatAgentQryRecursive(6),
+        bcnDnsStatAgentQrySuccess(7),
+        bcnDnsStatAgentQryFORMERR(8),
+        bcnDnsStatAgentQrySERVFAIL(9),
+        bcnDnsStatAgentQryDuplicate(10),
+		bcnDnsStatAgentQryREFUSED(11),
+		bcnDnsStatAgentQryOtherRcode(12),
+        bcnDnsStatAgentQrySuccessfulRecursive(13),
+        bcnDnsStatAgentQrySuccessfulNoauthAns(14)
+    }
+
+BcnDnsBindStatPerViewAgentQryTypes   ::= TEXTUAL-CONVENTION
+    STATUS current
+    DESCRIPTION
+        "Statistics per view, provided by the BIND statistics channel,
+		in which:
+			TotalQueries: Total number of queries sent
+			TotalResponses: Total number of responses received
+			QryNXDOMAIN: Queries that resulted in NXDOMAIN responses
+			QrySERVFAIL: Queries that resulted in SERVFAIL responses
+			QryFORMERR: Queries that resulted in FORMERR responses
+			QryRetry: Query retries sent
+			QryTimeout: Queries that timed out before a response was received
+			QryRTT10: Queries whose round trip times are between 0 (inclusive) and 10 (exclusive) milliseconds.
+			QryRTT100:Queries whose round trip times are between 10 (inclusive) and 100 (exclusive) milliseconds.
+			QryRTT500: Queries whose round trip times are between 100 (inclusive) and 500 (exclusive) milliseconds.
+			QryRTT800: Queries whose round trip times are between 500 (inclusive) and 800 (exclusive) milliseconds.
+			QryRTT1600: Queries whose round trip times are between 800 (inclusive) and 1600 (exclusive) milliseconds.
+			QryRTT1600Plus: Queries whose round trip times are equal to or over 1600 milliseconds.
+			QryREFUSED: Queries that resulted in REFUSED responses
+			QryOtherError: Queries that resulted in an error that was not NXDOMAIN, SERVFAIL, FORMERR or REFUSED"
+    SYNTAX  Integer32 {
+        bcnStatAgentViewTotalQueries(1),
+        bcnStatAgentViewTotalResponses(2),
+        bcnStatAgentViewQryNXDOMAIN(3),
+        bcnStatAgentViewQrySERVFAIL(4),
+        bcnStatAgentViewQryFORMERR(5),
+        bcnStatAgentViewQryRetry(6),
+        bcnStatAgentViewQryTimeout(7),
+        bcnStatAgentViewQryRTT10(8),
+        bcnStatAgentViewQryRTT100(9),
+        bcnStatAgentViewQryRTT500(10),
+        bcnStatAgentViewQryRTT800(11),
+        bcnStatAgentViewQryRTT1600(12),
+        bcnStatAgentViewQryRTT1600Plus(13),
+        bcnStatAgentViewQryREFUSED(14),
+        bcnStatAgentViewQryOtherError(15)
+    }
+
+-- ***************************************************
+-- bcnDnsStatAgentPerClientIP        OBJECT IDENTIFIER ::= { bcnDnsAgentStatistics 1 }
+-- ***************************************************
+statPerClientTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF statPerClientEntity
+    ACCESS not-accessible
+	STATUS current
+    DESCRIPTION
+           "The table of statistics from the time the agent starts running and are classified by DNS client."
+    ::= { bcnDnsStatAgentPerClientIP 1 }
+
+statPerClientEntity OBJECT-TYPE
+    SYNTAX statPerClientEntity
+    ACCESS not-accessible
+	STATUS current
+    DESCRIPTION
+           "A (conceptual) entry for DNS client statistics."
+    INDEX { clientIP, statisticAgentQryTypePerClient }
+    ::= { statPerClientTable 1 }
+
+statPerClientEntity ::= SEQUENCE {
+        clientIP                       			InetAddress,
+        statisticAgentQryTypePerClient          Integer32,
+        statisticAgentQryValuePerClient         Counter64
+    }
+
+clientIP    OBJECT-TYPE 
+    SYNTAX InetAddress
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "The IP Address of the client which performs DNS queries to DNS server."
+    ::= { statPerClientEntity 1 }
+
+statisticAgentQryTypePerClient OBJECT-TYPE
+    SYNTAX BcnDnsStatAgentQryTypes
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+           "The statistic type."
+    ::= { statPerClientEntity 2 }
+
+statisticAgentQryValuePerClient OBJECT-TYPE
+    SYNTAX Counter64
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+           "The value of the reported statistic."
+    ::= { statPerClientEntity 3 }
+
+
+avgTimePerClientTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF avgTimePerClientEntity
+    ACCESS not-accessible
+	STATUS current
+    DESCRIPTION
+           "The table of average response time in the last interval (e.g. 1 minute) and are classified by DNS client."
+    ::= { bcnDnsStatAgentPerClientIP 2 }
+
+avgTimePerClientEntity OBJECT-TYPE
+    SYNTAX avgTimePerClientEntity
+    ACCESS not-accessible
+	STATUS current
+    DESCRIPTION
+           "A (conceptual) entry for DNS client statistics."
+    INDEX { avgTimeClientIP }
+    ::= { avgTimePerClientTable 1 }
+
+avgTimePerClientEntity ::= SEQUENCE {
+        avgTimeClientIP                       			InetAddress,
+        avgTimeValuePerClient                   Integer32
+}
+
+avgTimeClientIP    OBJECT-TYPE 
+    SYNTAX InetAddress
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "The IP Address of the client which performs DNS queries to DNS server."
+    ::= { avgTimePerClientEntity 1 }
+
+avgTimeValuePerClient OBJECT-TYPE
+    SYNTAX Integer32
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+           "The value of the average time in micro seconds."
+    ::= { avgTimePerClientEntity 2 }
+
+-- ***************************************************
+-- bcnDnsStatAgentPerServerIP        OBJECT IDENTIFIER ::= { bcnDnsAgentStatistics 2 }
+-- ***************************************************
+statPerServerTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF statPerServerEntity
+    ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+           "The table of statistics from the time the agent starts running and are classified by Authoritative DNS Server or Forwarder."
+    ::= { bcnDnsStatAgentPerServerIP 1 }
+
+statPerServerEntity OBJECT-TYPE
+    SYNTAX statPerServerEntity
+    ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+           "A (conceptual) entry for Authoritative DNS Server or Forwarder statistics."
+    INDEX { serverIP, statisticAgentQryTypePerServer }
+    ::= { statPerServerTable 1 }
+	
+statPerServerEntity ::= SEQUENCE {
+        serverIP                				InetAddress,
+        statisticAgentQryTypePerServer          Integer32,
+        statisticAgentQryValuePerServer         Counter64
+    }
+
+serverIP         OBJECT-TYPE 
+    SYNTAX InetAddress
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "The IP Address of Authoritative DNS Server or Forwarder that DNS Server performs DNS queries to."
+    ::= { statPerServerEntity 1 }
+
+statisticAgentQryTypePerServer OBJECT-TYPE
+    SYNTAX BcnDnsStatAgentQryTypes
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+           "The statistic type."
+    ::= { statPerServerEntity 2 }
+
+statisticAgentQryValuePerServer OBJECT-TYPE
+    SYNTAX Counter64
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+           "The value of the reported statistic."
+    ::= { statPerServerEntity 3 }
+
+
+avgTimePerServerTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF avgTimePerServerEntity
+    ACCESS not-accessible
+	STATUS current
+    DESCRIPTION
+           "The table of average response time in the last interval (e.g. 1 minute) and are classified by Authoritative DNS Server or Forwarder."
+    ::= { bcnDnsStatAgentPerServerIP 2 }
+
+avgTimePerServerEntity OBJECT-TYPE
+    SYNTAX avgTimePerServerEntity
+    ACCESS not-accessible
+	STATUS current
+    DESCRIPTION
+           "A (conceptual) entry for Authoritative DNS Server or Forwarder statistics."
+    INDEX { avgTimeServerIP }
+    ::= { avgTimePerServerTable 1 }
+
+avgTimePerServerEntity ::= SEQUENCE {
+        avgTimeServerIP                        InetAddress,
+        avgTimeValuePerServer                  Integer32
+}
+
+avgTimeServerIP    OBJECT-TYPE 
+    SYNTAX InetAddress
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "The IP Address of Authoritative DNS Server that DNS Server performs DNS queries to."
+    ::= { avgTimePerServerEntity 1 }
+
+avgTimeValuePerServer OBJECT-TYPE
+    SYNTAX Integer32
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+           "The value of the average time in micro seconds."
+    ::= { avgTimePerServerEntity 2 }
+
+-- ***************************************************
+-- bcnDnsStatAgentPerView        OBJECT IDENTIFIER ::= { bcnDnsAgentStatistics 3 }
+-- ***************************************************
+statPerViewTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF statPerViewEntity
+    ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+           "The table of statistics per each view from the time the Packetbeat service starts running."
+    ::= { bcnDnsStatAgentPerView 1 }
+
+statPerViewEntity OBJECT-TYPE
+    SYNTAX statPerViewEntity
+    ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+           "A (conceptual) entry for statistics per each view supported by the Packetbeat statistics-channels."
+    INDEX { view, statisticAgentQryTypePerView }
+    ::= { statPerViewTable 1 }
+	
+statPerViewEntity ::= SEQUENCE {
+        view                                    DisplayString,
+        statisticAgentQryTypePerView               Integer32,
+        statisticAgentQryValuePerView              Counter64
+    }
+
+view    OBJECT-TYPE 
+    SYNTAX DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "The view managed by the DNS Server."
+    ::= { statPerViewEntity 1 }
+
+statisticAgentQryTypePerView OBJECT-TYPE
+    SYNTAX BcnDnsStatAgentQryTypes
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+           "The statistic type per each view."
+    ::= { statPerViewEntity 2 }
+
+statisticAgentQryValuePerView OBJECT-TYPE
+    SYNTAX Counter64
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+           "The value of the reported statistic."
+    ::= { statPerViewEntity 3 }
+
+avgTimePerViewTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF avgTimePerViewEntity
+    ACCESS not-accessible
+	STATUS current
+    DESCRIPTION
+           "The table of average response time in the last interval (e.g. 1 minute) and are classified view."
+    ::= { bcnDnsStatAgentPerView 2 }
+
+avgTimePerViewEntity OBJECT-TYPE
+    SYNTAX avgTimePerViewEntity
+    ACCESS not-accessible
+	STATUS current
+    DESCRIPTION
+           "A (conceptual) entry for view statistics."
+    INDEX { avgTimeView }
+    ::= { avgTimePerViewTable 1 }
+
+avgTimePerViewEntity ::= SEQUENCE {
+        avgTimeView                        DisplayString,
+        avgTimeValueView                  Integer32
+}
+
+avgTimeView    OBJECT-TYPE 
+    SYNTAX DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "The view name of View."
+    ::= { avgTimePerViewEntity 1 }
+
+avgTimeValueView OBJECT-TYPE
+    SYNTAX Integer32
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+           "The value of the average time in micro seconds."
+    ::= { avgTimePerViewEntity 2 }
+
+-- ***************************************************
+-- bcnDnsBindStatAgentPerView        OBJECT IDENTIFIER ::= { bcnDnsAgentStatistics 4 }
+-- ***************************************************
+bindStatPerViewTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF bindStatPerViewEntity
+    ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+           "The table of statistics per each view from the time the BIND service starts running."
+    ::= { bcnDnsBindStatAgentPerView 1 }
+
+bindStatPerViewEntity OBJECT-TYPE
+    SYNTAX bindStatPerViewEntity
+    ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+           "A (conceptual) entry for statistics per each view supported by the BIND statistics-channels."
+    INDEX { bindView, bindStatAgentQryTypePerView }
+    ::= { bindStatPerViewTable 1 }
+	
+bindStatPerViewEntity ::= SEQUENCE {
+        bindView                                  DisplayString,
+        bindStatAgentQryTypePerView               Integer32,
+        bindStatAgentQryValuePerView             Counter64
+    }
+
+bindView    OBJECT-TYPE 
+    SYNTAX DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "The view managed by the DNS Server which get from BIND."
+    ::= { bindStatPerViewEntity 1 }
+
+bindStatAgentQryTypePerView OBJECT-TYPE
+    SYNTAX BcnDnsBindStatPerViewAgentQryTypes
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+           "The statistic type per each view get from BIND."
+    ::= { bindStatPerViewEntity 2 }
+
+bindStatAgentQryValuePerView OBJECT-TYPE
+    SYNTAX Counter64
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+           "The value of the reported statistic which get from BIND."
+    ::= { bindStatPerViewEntity 3 }
+
+END
