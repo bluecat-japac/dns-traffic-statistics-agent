@@ -59,6 +59,7 @@ def get_stats_views():
     """
     logger.debug("Get statistic from bind")
     stats_views_bind = get_stats('views')
+    logger.debug("Get statistic view from bind is {}".format(str(stats_views_bind)))
     stats_views = {}
     try:
         for view in stats_views_bind:

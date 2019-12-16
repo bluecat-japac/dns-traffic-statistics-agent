@@ -28,7 +28,7 @@ bcnDnsStatAgent             OBJECT IDENTIFIER ::= { bcnContrib 2 }
 -- ***************************************************
 
 bcnDnsStatAgentMIB MODULE-IDENTITY
-    LAST-UPDATED	"201906201200Z"
+    LAST-UPDATED	"201912131200Z"
     ORGANIZATION	"BlueCat Networks"
     CONTACT-INFO
         "BlueCat Networks. Customer Care.
@@ -46,8 +46,8 @@ bcnDnsStatAgentMIB MODULE-IDENTITY
 bcnDnsAgentStatistics 					  OBJECT IDENTIFIER   ::= { bcnDnsStatAgent 2 }
 bcnDnsStatAgentPerClientIP                OBJECT IDENTIFIER   ::= { bcnDnsAgentStatistics 1 }
 bcnDnsStatAgentPerServerIP                OBJECT IDENTIFIER   ::= { bcnDnsAgentStatistics 2 }
-bcnDnsStatAgentPerView                    OBJECT IDENTIFIER   ::= { bcnDnsAgentStatistics 3 }
-bcnDnsBindStatAgentPerView                OBJECT IDENTIFIER   ::= { bcnDnsAgentStatistics 4 }
+bcnDnsBindStatAgentPerView                OBJECT IDENTIFIER   ::= { bcnDnsAgentStatistics 3 }
+bcnDnsStatAgentPerView                    OBJECT IDENTIFIER   ::= { bcnDnsAgentStatistics 4 }
 -- ***************************************************
 
 -- Data objects
@@ -308,7 +308,57 @@ avgTimeValuePerServer OBJECT-TYPE
     ::= { avgTimePerServerEntity 2 }
 
 -- ***************************************************
--- bcnDnsStatAgentPerView        OBJECT IDENTIFIER ::= { bcnDnsAgentStatistics 3 }
+-- bcnDnsBindStatAgentPerView        OBJECT IDENTIFIER ::= { bcnDnsAgentStatistics 3 }
+-- ***************************************************
+bindStatPerViewTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF bindStatPerViewEntity
+    ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+           "The table of statistics per each view from the time the BIND service starts running."
+    ::= { bcnDnsBindStatAgentPerView 1 }
+
+bindStatPerViewEntity OBJECT-TYPE
+    SYNTAX bindStatPerViewEntity
+    ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+           "A (conceptual) entry for statistics per each view supported by the BIND statistics-channels."
+    INDEX { bindView, bindStatAgentQryTypePerView }
+    ::= { bindStatPerViewTable 1 }
+	
+bindStatPerViewEntity ::= SEQUENCE {
+        bindView                                  DisplayString,
+        bindStatAgentQryTypePerView               Integer32,
+        bindStatAgentQryValuePerView             Counter64
+    }
+
+bindView    OBJECT-TYPE 
+    SYNTAX DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "The view managed by the DNS Server which get from BIND."
+    ::= { bindStatPerViewEntity 1 }
+
+bindStatAgentQryTypePerView OBJECT-TYPE
+    SYNTAX BcnDnsBindStatPerViewAgentQryTypes
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+           "The statistic type per each view get from BIND."
+    ::= { bindStatPerViewEntity 2 }
+
+bindStatAgentQryValuePerView OBJECT-TYPE
+    SYNTAX Counter64
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+           "The value of the reported statistic which get from BIND."
+    ::= { bindStatPerViewEntity 3 }
+
+-- ***************************************************
+-- bcnDnsStatAgentPerView        OBJECT IDENTIFIER ::= { bcnDnsAgentStatistics 4 }
 -- ***************************************************
 statPerViewTable OBJECT-TYPE
     SYNTAX SEQUENCE OF statPerViewEntity
@@ -394,55 +444,5 @@ avgTimeValueView OBJECT-TYPE
     DESCRIPTION
            "The value of the average time in micro seconds."
     ::= { avgTimePerViewEntity 2 }
-
--- ***************************************************
--- bcnDnsBindStatAgentPerView        OBJECT IDENTIFIER ::= { bcnDnsAgentStatistics 4 }
--- ***************************************************
-bindStatPerViewTable OBJECT-TYPE
-    SYNTAX SEQUENCE OF bindStatPerViewEntity
-    ACCESS not-accessible
-    STATUS current
-    DESCRIPTION
-           "The table of statistics per each view from the time the BIND service starts running."
-    ::= { bcnDnsBindStatAgentPerView 1 }
-
-bindStatPerViewEntity OBJECT-TYPE
-    SYNTAX bindStatPerViewEntity
-    ACCESS not-accessible
-    STATUS current
-    DESCRIPTION
-           "A (conceptual) entry for statistics per each view supported by the BIND statistics-channels."
-    INDEX { bindView, bindStatAgentQryTypePerView }
-    ::= { bindStatPerViewTable 1 }
-	
-bindStatPerViewEntity ::= SEQUENCE {
-        bindView                                  DisplayString,
-        bindStatAgentQryTypePerView               Integer32,
-        bindStatAgentQryValuePerView             Counter64
-    }
-
-bindView    OBJECT-TYPE 
-    SYNTAX DisplayString
-    MAX-ACCESS  read-only
-    STATUS  current
-    DESCRIPTION
-        "The view managed by the DNS Server which get from BIND."
-    ::= { bindStatPerViewEntity 1 }
-
-bindStatAgentQryTypePerView OBJECT-TYPE
-    SYNTAX BcnDnsBindStatPerViewAgentQryTypes
-    ACCESS read-only
-    STATUS current
-    DESCRIPTION
-           "The statistic type per each view get from BIND."
-    ::= { bindStatPerViewEntity 2 }
-
-bindStatAgentQryValuePerView OBJECT-TYPE
-    SYNTAX Counter64
-    ACCESS read-only
-    STATUS current
-    DESCRIPTION
-           "The value of the reported statistic which get from BIND."
-    ::= { bindStatPerViewEntity 3 }
 
 END

@@ -33,19 +33,21 @@ for count in range(int(number_client)):
         "192.168.88.{}".format(str(count+1)): {
             "type": "perClient",
             "dnsmetrics": {
-                "total_queries": 400,
-                "total_responses": 20,
+                "total_queries": 900,
+                "total_responses": 210,
                 "referral": 0,
-                "nx_rrset": 122,
-                "nx_domain": 22,
-                "recursive": 43,
-                "successful": 40,
-                "format_error": 40,
+                "nx_rrset": 44,
+                "nx_domain": 700,
+                "recursive": 200,
+                "successful": 0,
+                "format_error": 0,
                 "server_fail": 120,
                 "duplicated": 0,
                 "refused": 0,
-                "other_rcode": 0,
-                "average_time": 4.112
+                "other_rcode": 10,
+                "average_time": 0.115,
+                "successful_recursive": 12,
+                "successful_noauthans": 0
             }
         }
     })

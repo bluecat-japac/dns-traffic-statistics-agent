@@ -92,13 +92,18 @@ def get_table_by_type(stat_type, is_time_table=False):
 def set_view_default_named(file_excution):
     findall_views = file_excution.findall_data('view \".+\"')
     views = [view[6:-1] for view in findall_views]
-    metrics = QryType.METRIC_FOR_AGENT.keys()
-    metrics.append(QryType.METRIC_AVG_TIME)
-    views_stats_default = dict()
+
+    pb_view_metrics = QryType.METRIC_FOR_AGENT.keys()
+    pb_view_metrics.append(QryType.METRIC_AVG_TIME)
+    bind_view_metrics = QryType.METRIC_FOR_BIND_VIEW.keys()
     for view in views:
-        for metric_name in metrics:
+        # Set default value zero for view from Packetbeat
+        for metric_name in pb_view_metrics:
             AgentServer.update_to_mib_table(StatisticPerType.VIEW, view, metric_name, 0)
-    
+        # Set default value zero for view from BIND
+        for metric_name in bind_view_metrics:
+            AgentServer.update_to_mib_table(StatisticPerType.BIND_VIEW, view, metric_name, 0)
+
 
 def set_clients_default_named(file_excution):
     clients_stats_default = dict()
@@ -261,6 +266,18 @@ class AgentServer(BaseHTTPRequestHandler):
                 cls.update_to_mib_table(
                     StatisticPerType.BIND_VIEW, view, metric_name, value)
 
+        # Sync-up with data in mib
+        # Sync-up again after update data from Packetbeat and then set default for another client/server/view missing
+        MIB_TABLE[TableOidStr.STAT_PER_CLIENT]["table_value"] = MIB_TABLE[TableOidStr.STAT_PER_CLIENT]["table"].value()
+        MIB_TABLE[TableOidStr.STAT_PER_SERVER]["table_value"] = MIB_TABLE[TableOidStr.STAT_PER_SERVER]["table"].value()
+        MIB_TABLE[TableOidStr.STAT_PER_VIEW]["table_value"] = MIB_TABLE[TableOidStr.STAT_PER_VIEW]["table"].value()
+
+        # Run set default for client/server/view in ACL missing in PB output
+        # And set default for view in ACL missing in BIND output
+        logger.info("Set default zero value for metrics missing")
+        cls.set_default_stats()
+
+
     def _repsonse_template(self, code, status):
         """[Prepare content for response]
 
@@ -327,6 +344,7 @@ def start_http_server(agent_input, table_input):
         httpd.serve_forever()
     except Exception as ex:
         logger.error("start_http_server error: {}".format(ex))
+        logger.error(traceback.format_exc())
         logger.info("Shutdown http agent server")
         if httpd:
             httpd.close_request() 
