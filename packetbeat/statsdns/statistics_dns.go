@@ -109,11 +109,16 @@ func InitStatisticsDNS() {
 		StatSrv = &StatisticsService{Start: time.Now(), StatsMap: make(map[string]*StatisticsDNS, MaximumClients)}
 		ReqMap = &RequestMap{RequestMessage: make(map[string]map[string]string, MaximumClients)}
 		//===================Create Counter For PerView============================
-		go func() {
-			CreateCounterMetricPerView(MapViewIPs)
-		}()
+		//go func() {
+		//	CreateCounterMetricPerView(MapViewIPs)
+		//}()
 		//===================End Create Counter For PerView========================
 		for {
+			//===================Create Counter For PerView==========================
+			go func() {
+				CreateCounterMetricPerView(MapViewIPs)
+			}()
+			//===================End Create Counter For PerView======================
 			t := <-ticker.C
 			mutex.Lock()
 			logp.Info("Starting %s", t)
@@ -130,11 +135,6 @@ func InitStatisticsDNS() {
 			}()
 			StatSrv = &StatisticsService{Start: t, StatsMap: make(map[string]*StatisticsDNS, MaximumClients)}
 			ReqMap = &RequestMap{RequestMessage: make(map[string]map[string]string, MaximumClients)}
-			//===================Create Counter For PerView==========================
-			go func() {
-				CreateCounterMetricPerView(MapViewIPs)
-			}()
-			//===================End Create Counter For PerView======================
 			mutex.Unlock()
 		}
 	}()
