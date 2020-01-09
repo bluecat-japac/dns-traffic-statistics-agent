@@ -120,10 +120,15 @@ Extract the dns-traffic-statistic-agent.tar.gz to a folder in BDDS, then follow 
 	```
 	pip install wheel-0.33.4-py2.py3-none-any.whl
 	```
-5. Install netsnmpagent in setup-package
+5. Install netsnmpagent and ipaddress in setup-package
 	```
 	pip install netsnmpagent-0.6.0.tar.gz
+	pip install ipaddress-1.0.23-py2.py3-none-any.whl
 	```
+	- Note: If there is internet connection, install with requirements.txt in dns-snmp-agent:
+		```
+		pip install -r requirements.txt
+		```
 6.	Configure dns_stat_agent service
 	- Copy service to /lib/systemd/system/
 		```

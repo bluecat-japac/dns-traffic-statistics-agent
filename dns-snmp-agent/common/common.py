@@ -15,8 +15,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import division
 import os
 import re
+
 
 def mili_to_micro(input_time):
     """[Averagetime, multiply 1000 so convert to microsecond]
@@ -26,6 +28,52 @@ def mili_to_micro(input_time):
         [int] -- [microsecond]
     """
     return int(input_time*1000)
+
+
+def micro_to_mili(input_time):
+    """[Averagetime, divide 1000 so convert to milisecend]
+    Arguments:
+        input_time {[float]} -- [microsecond]
+    Returns:
+        [int] -- [milisecond]
+    """
+    return input_time/1000
+
+
+def convert_ipv4(ip):
+    return tuple(int(n) for n in ip.split('.'))
+
+
+def convert_ipv6(ip):
+    return tuple(int(n) for n in ip.split(':'))
+
+
+def check_ipv4_in(addr, start, end):
+    return convert_ipv4(start) < convert_ipv4(addr) < convert_ipv4(end)
+
+
+def check_ipv6_in(addr, start, end):
+    return convert_ipv6(start) < convert_ipv6(addr) < convert_ipv6(end)
+
+
+def is_ip_in_cidr(ip, cidr):
+    import ipaddress
+    net = ipaddress.ip_network(u'{}'.format(cidr))
+    ip_range = (str(net[0]), str(net[-1]))
+    ip = ipaddress.ip_address(u'{}'.format(ip))
+    if isinstance(ip, ipaddress.IPv4Address) and isinstance(net, ipaddress.IPv4Network):
+        return check_ipv4_in(str(ip), *ip_range)
+    elif isinstance(ip, ipaddress.IPv6Address) and isinstance(net, ipaddress.IPv6Network):
+        return check_ipv6_in(str(ip), *ip_range)
+    return False
+
+
+def is_ip_in_list_cidr(ip, list_cidr):
+    for cidr in list_cidr:
+        if is_ip_in_cidr(ip, cidr):
+            return True
+    return False
+
 
 class FileExcution():
     def __init__(self, file_path):

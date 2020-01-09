@@ -36,7 +36,7 @@ import re
 import traceback
 from config import logger, HTTP_CONFIGURATION, NAMED_PATH_FILE
 from common.constants import QryType, StatisticPerType, TableOidStr, IPV4_PARTERN, IPV6_PARTERN
-from common.common import mili_to_micro, FileExcution
+from common.common import mili_to_micro, FileExcution, micro_to_mili, is_ip_in_list_cidr
 from common.bind import get_stats_views
 global AGENT, MIB_TABLE, ROW_DICT
 AGENT, MIB_TABLE = None, None
@@ -57,6 +57,12 @@ def get_old_counter_value(ip, dns_query_type_id, table_value):
             return value[3]
     return 0
 
+
+def get_average_time(ip, table_value):
+    for value in table_value:
+        if value[1] == ip:
+            return value[2]
+    return 0
 
 def get_table_by_type(stat_type, is_time_table=False):
     """[summary]
@@ -89,10 +95,45 @@ def get_table_by_type(stat_type, is_time_table=False):
         logger.error("Get table by type has key error {}".format(key_exception))
         return None
         
-def set_view_default_named(file_excution):
-    findall_views = file_excution.findall_data('view \".+\"')
-    views = [view[6:-1] for view in findall_views]
 
+def get_regex_by_type(per_type):
+    regex = ".*"
+    if per_type == StatisticPerType.CLIENT:
+        regex = "acl _TrafficStatisticsAgent_Clients.+"
+    elif per_type == StatisticPerType.SERVER:
+        regex = 'acl _TrafficStatisticsAgent_Servers.+'
+    elif per_type == StatisticPerType.VIEW:
+        regex = 'view \".+\"'
+    return regex
+
+
+def get_addr_acl(per_type, file_excution):
+    regex = get_regex_by_type(per_type)
+    findall_acl_addr = file_excution.findall_data(regex)
+
+    list_ip = []
+    list_ip_range = []
+    for acl in findall_acl_addr:
+        addrs_acl = re.findall("{}|{}".format(IPV4_PARTERN, IPV6_PARTERN), acl)
+        for addr_acl in addrs_acl:
+            if addr_acl in list_ip or addr_acl in list_ip_range or addr_acl[-1] == ':':
+                continue
+            elif "/" in addr_acl:
+                list_ip_range.append(addr_acl)
+            else:
+                list_ip.append(addr_acl)
+    return list_ip, list_ip_range
+
+
+def get_view_acl(file_excution):
+    regex = get_regex_by_type(StatisticPerType.VIEW)
+    findall_views = file_excution.findall_data(regex)
+    views = [view[6:-1] for view in findall_views]
+    return views
+
+
+def set_view_default_named(file_excution):
+    views = get_view_acl(file_excution)
     pb_view_metrics = QryType.METRIC_FOR_AGENT.keys()
     pb_view_metrics.append(QryType.METRIC_AVG_TIME)
     bind_view_metrics = QryType.METRIC_FOR_BIND_VIEW.keys()
@@ -106,37 +147,131 @@ def set_view_default_named(file_excution):
 
 
 def set_clients_default_named(file_excution):
-    clients_stats_default = dict()
-    findall_acl_clients = file_excution.findall_data('acl _TrafficStatisticsAgent_Clients.+')
+    clients, _ = get_addr_acl(StatisticPerType.CLIENT, file_excution)
     metrics = QryType.METRIC_FOR_AGENT.keys()
     metrics.append(QryType.METRIC_AVG_TIME)
-    list_client = []
-    for acl in findall_acl_clients:
-        clients = re.findall("{}|{}".format(IPV4_PARTERN, IPV6_PARTERN), acl)
-        for client in clients:
-            if client[-2:] == '.0' or client[-1] == ':' or client in list_client:
-                continue
-            logger.info("Add client {} to mib".format(client))
-            list_client.append(client)
-            for metric_name in metrics:
-                AgentServer.update_to_mib_table(StatisticPerType.CLIENT, client, metric_name, 0)
+    for client in clients:
+        logger.info("Add client {} to mib".format(client))
+        for metric_name in metrics:
+            AgentServer.update_to_mib_table(StatisticPerType.CLIENT, client, metric_name, 0)
 
 
 def set_servers_default_named(file_excution):
-    servers_stats_default = dict()
-    findall_acl_servers = file_excution.findall_data('acl _TrafficStatisticsAgent_Servers.+')
+    servers, _ = get_addr_acl(StatisticPerType.SERVER, file_excution)
     metrics = QryType.METRIC_FOR_AGENT.keys()
     metrics.append(QryType.METRIC_AVG_TIME)
-    list_server = []
-    for acl in findall_acl_servers:
-        servers = re.findall("{}|{}".format(IPV4_PARTERN, IPV6_PARTERN), acl)
-        for server in servers:
-            if server[-2:] == '.0' or server[-1] == ':' or server in list_server:
-                continue
-            logger.info("Add server {} to mib".format(server))
-            list_server.append(server)
-            for metric_name in metrics:
-                AgentServer.update_to_mib_table(StatisticPerType.SERVER, server, metric_name, 0)
+    for server in servers:
+        logger.info("Add server {} to mib".format(server))
+        for metric_name in metrics:
+            AgentServer.update_to_mib_table(StatisticPerType.SERVER, server, metric_name, 0)
+
+
+def get_stats_after_deploy(type):
+    import collections
+    file_excution = FileExcution(NAMED_PATH_FILE)
+
+    list_statistic_data = []
+    group_addrs = collections.defaultdict(list)
+
+    list_ip, list_ip_range = get_addr_acl(type, file_excution)
+    logger.debug("List IP in ACL: {}".format(list_ip))
+    logger.debug("List IP CIDR in ACL: {}".format(list_ip_range))
+
+    qry_table = get_table_by_type(type)
+    qry_table_value = qry_table["table_value"].values()[1:]
+    for value in qry_table_value:
+        if value[1] not in list_ip and not is_ip_in_list_cidr(value[1], list_ip_range):
+            continue
+        group_addrs[value[1]].append(value)
+    average_time_table = get_table_by_type(type, True)
+    average_time_table_value = average_time_table['table'].value().values()[1:]
+    
+    metrics = {id: metrics_name for metrics_name, id in QryType.METRIC_FOR_AGENT.items()}
+    for ip, values in group_addrs.items():
+        dnsmetrics = {}
+        for value in values:
+            dnsmetrics.update({metrics[value[2]]: int(value[3])})
+        average_time = get_average_time(ip, average_time_table_value)
+        # Need to change average_time from micro to milisecend 
+        dnsmetrics.update({"average_time": micro_to_mili(average_time)})
+        stat = {
+            "ip_or_view": ip, 
+            "type": type, 
+            "dnsmetrics": dnsmetrics}
+        list_statistic_data.append(stat)
+    return list_statistic_data
+
+
+def get_stats_view_after_deploy(type):
+    import collections
+    file_excution = FileExcution(NAMED_PATH_FILE)
+
+    list_statistic_data = []
+    group_views = collections.defaultdict(list)
+
+    views = get_view_acl(file_excution)
+    qry_table = get_table_by_type(type)
+    qry_table_value = qry_table["table_value"].values()[1:]
+    for value in qry_table_value:
+        if value[1] not in views:
+            continue
+        group_views[value[1]].append(value)
+    average_time_table = get_table_by_type(type, True)
+    average_time_table_value = average_time_table['table'].value().values()[1:]
+
+    metrics = {id: metrics_name for metrics_name, id in QryType.METRIC_FOR_AGENT.items()}
+    for view, values in group_views.items():
+        dnsmetrics = {}
+        for value in values:
+            dnsmetrics.update({metrics[value[2]]: int(value[3])})
+        average_time = get_average_time(view, average_time_table_value)
+        # Need to change average_time from micro to milisecend 
+        dnsmetrics.update({"average_time": micro_to_mili(average_time)})
+        stat = {
+            "ip_or_view": view, 
+            "type": type, 
+            "dnsmetrics": dnsmetrics}
+        list_statistic_data.append(stat)
+    return list_statistic_data
+
+
+def clean_all_table_agent():
+    global ROW_DICT
+    ROW_DICT = {}
+    MIB_TABLE[TableOidStr.STAT_PER_CLIENT]["table"].clear()
+    MIB_TABLE[TableOidStr.STAT_PER_SERVER]["table"].clear()
+    MIB_TABLE[TableOidStr.STAT_PER_VIEW]["table"].clear()
+    
+
+def reformat_pb_content(pb_request_content):
+    """[Restucture content from packetbeat]
+    
+    Arguments:
+        pb_request_content {[dict]} -- [statistic content get json request's json data
+            Example: {
+            "start": "2019-6-6,18:23:23.1",
+            "end": "2019-6-6,18:23:24.9",
+            "stats_map": {
+                "192.168.88.23": {"type": "perClient", "dnsmetrics": {"total_queries":0,"total_queries_new":0,
+                "total_responses":2,"total_responses_new":2,"recursive":0,"duplicated":0,"average_time":0,"successful":0,
+                "server_fail":0,"nx_domain":0,"format_error":2,"nx_rrset":0,"referral":0,"refused":0,"other_rcode":0}}}}]
+    Returns:
+        [list] -- [
+            [
+                {"ip_or_view": "192.168.88.23", "type": "perClient", "dnsmetrics": {"total_queries":0,"total_queries_new":0,
+                "total_responses":2,"total_responses_new":2,"recursive":0,"duplicated":0,"average_time":0,"successful":0,
+                "server_fail":0,"nx_domain":0,"format_error":2,"nx_rrset":0,"referral":0,"refused":0,"other_rcode":0}},
+                ...
+            ]]
+    """
+    list_statistic_data = pb_request_content.get('stats_map', [])
+    new_structure_data = []
+    for statistic_key in list_statistic_data:
+        data  = list_statistic_data[statistic_key]
+        data.update({"ip_or_view": statistic_key})
+        new_structure_data.append(data)
+    return new_structure_data
+
 
 class AgentServer(BaseHTTPRequestHandler):
 
@@ -174,7 +309,7 @@ class AgentServer(BaseHTTPRequestHandler):
 
             is_time_query_type = True if dns_query_type == QryType.METRIC_AVG_TIME else False
             table = get_table_by_type(stat_type, is_time_query_type)
-
+            
             if not table:
                 logger.error("Stat_type is not correct.")
                 return
@@ -219,18 +354,16 @@ class AgentServer(BaseHTTPRequestHandler):
             logger.error("Input {} wrong format".format(type_exception))
 
     @classmethod
-    def update_mib_stat_counter(cls, pb_request_content):
+    def update_mib_stat_counter(cls, list_statistic_data):
         """[Update all statistic dns receiver from PacketBeat and Bind]
 
         Arguments:
-            pb_request_content {[dict]} -- [statistic content get json request's json data
-                Example: {
-                "start": "2019-6-6,18:23:23.1",
-                "end": "2019-6-6,18:23:24.9",
-                "stats_map": {
-                    "192.168.88.23": {"type": "perClient", "dnsmetrics": {"total_queries":0,"total_queries_new":0,
-                    "total_responses":2,"total_responses_new":2,"recursive":0,"duplicated":0,"average_time":0,"successful":0,
-                    "server_fail":0,"nx_domain":0,"format_error":2,"nx_rrset":0,"referral":0,"refused":0,"other_rcode":0}}}}]
+            list_statistic_data {[list]} -- [statistic content get from request's data packetbeat
+                Example: [
+                {"ip_or_view": "192.168.88.23", "type": "perClient", "dnsmetrics": {"total_queries":0,"total_queries_new":0,
+                "total_responses":2,"total_responses_new":2,"recursive":0,"duplicated":0,"average_time":0,"successful":0,
+                "server_fail":0,"nx_domain":0,"format_error":2,"nx_rrset":0,"referral":0,"refused":0,"other_rcode":0}},
+                ...]]
         """
         global MIB_TABLE
         # Clear up 3 tables of avgTime and table of statistic views from bind
@@ -244,18 +377,17 @@ class AgentServer(BaseHTTPRequestHandler):
         MIB_TABLE[TableOidStr.STAT_PER_SERVER]["table_value"] = MIB_TABLE[TableOidStr.STAT_PER_SERVER]["table"].value()
         MIB_TABLE[TableOidStr.STAT_PER_VIEW]["table_value"] = MIB_TABLE[TableOidStr.STAT_PER_VIEW]["table"].value()
 
-        list_statistic_data = pb_request_content.get('stats_map', [])
         logger.info("Update {} client/server/view from PB to mib table".format(
             len(list_statistic_data)))
-        for statistic_key in list_statistic_data:
-            ip = statistic_key
-            stat_type = list_statistic_data[statistic_key]['type']
-            metrics = list_statistic_data[statistic_key]['dnsmetrics']
+        for statistic in list_statistic_data:
+            ip_or_view = statistic['ip_or_view']
+            stat_type = statistic['type']
+            metrics = statistic['dnsmetrics']
             for metric_name in metrics:
                 value = metrics[metric_name]
-                cls.update_to_mib_table(stat_type, ip, metric_name, value)
+                cls.update_to_mib_table(stat_type, ip_or_view, metric_name, value)
 
-        # Update statistic of view to mib
+        # Update statistic of view from bind to mib
         stats_views = get_stats_views()
         logger.info("Update {} view from bind channel to mib table".format(
             len(stats_views)))
@@ -294,29 +426,38 @@ class AgentServer(BaseHTTPRequestHandler):
         }
 
     def do_GET(self):
+        import traceback
         logger.info("Have request GET API")
-        if self.path == '/counter':
-            logger.info("Receive GET Counter api")
-            content_len = int(self.headers.get('content-length'))
-            content = json.loads(self.rfile.read(content_len))
-            logger.debug("Content receive from PB")
-            logger.debug(content)
-            self.update_mib_stat_counter(content)
+        try:
+            if self.path == '/counter':
+                logger.info("Receive GET Counter api")
+                content_len = int(self.headers.get('content-length'))
+                content = json.loads(self.rfile.read(content_len))
+                logger.debug("Content receive from PB")
+                logger.debug(content)
+                list_statistic_data = reformat_pb_content(content)
+                self.update_mib_stat_counter(list_statistic_data)
 
-            # Response
-            logger.info("Reponse to client")
-            self.send_response(200)
-            self.end_headers()
-            response_content = self._repsonse_template(200, 'SUCCESSFUL')
-            self.wfile.write(json.dumps(response_content).encode())
-        elif self.path == '/announcement-deploy-from-bam':
-            logger.info("Announcement deploy from bam")
-            self.set_default_stats()
-            # self.send_response(200, "SUCCESSFUL")
-        else:
-            logger.info("Wrong request url")
-            self.send_response(404, "NOT FOUND")
-
+                # Response
+                logger.info("Reponse to client")
+                self.send_response(200)
+                self.end_headers()
+                response_content = self._repsonse_template(200, 'SUCCESSFUL')
+                self.wfile.write(json.dumps(response_content).encode())
+            elif self.path == '/announcement-deploy-from-bam':
+                logger.info("Announcement deploy from bam")
+                list_statistic_data = []
+                list_statistic_data += get_stats_after_deploy(StatisticPerType.CLIENT)
+                list_statistic_data += get_stats_after_deploy(StatisticPerType.SERVER)
+                list_statistic_data += get_stats_view_after_deploy(StatisticPerType.VIEW)
+                clean_all_table_agent()
+                self.update_mib_stat_counter(list_statistic_data)
+                # self.send_response(200, "SUCCESSFUL")
+            else:
+                logger.info("Wrong request url")
+                self.send_response(404, "NOT FOUND")
+        except Exception:
+                logger.error(traceback.format_exc())
 class HTTPAgnetServer(HTTPServer):
     def server_bind(self):
         import socket
@@ -338,6 +479,9 @@ def start_http_server(agent_input, table_input):
     httpd = None
     try:
         AgentServer.set_default_stats()
+        MIB_TABLE[TableOidStr.STAT_PER_CLIENT]["table_value"] = MIB_TABLE[TableOidStr.STAT_PER_CLIENT]["table"].value()
+        MIB_TABLE[TableOidStr.STAT_PER_SERVER]["table_value"] = MIB_TABLE[TableOidStr.STAT_PER_SERVER]["table"].value()
+        MIB_TABLE[TableOidStr.STAT_PER_VIEW]["table_value"] = MIB_TABLE[TableOidStr.STAT_PER_VIEW]["table"].value()
         httpd = HTTPAgnetServer(
             (HTTP_CONFIGURATION['host'], HTTP_CONFIGURATION['port']), AgentServer)
         httpd.allow_reuse_address = True
