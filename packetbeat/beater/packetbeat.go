@@ -100,6 +100,8 @@ func New(b *beat.Beat, rawConfig *common.Config) (beat.Beater, error) {
 		config:      config,
 		cmdLineArgs: cmdLineArgs,
 	}
+	logp.Info("packetbeat config: %+v", config)
+
 	err = pb.init(b)
 	if err != nil {
 		return nil, err
@@ -123,7 +125,6 @@ func (pb *packetbeat) init(b *beat.Beat) error {
 		logp.Info("Process watcher disabled when file input is used")
 	}
 
-	// TODO [lnquy]
 	pb.pipeline = b.Publisher
 	pb.transPub, err = publish.NewTransactionPublisher(
 		b.Info.Name,
