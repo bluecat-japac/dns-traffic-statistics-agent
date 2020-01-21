@@ -5,7 +5,7 @@
 // that can be found in the LICENSE file in the root of the source
 // tree.
 
-// Package ip4defrag implements a IPv4 defragmenter
+// Package ip6defrag implements a IPv6 defragmenter
 
 package ip6defrag
 
