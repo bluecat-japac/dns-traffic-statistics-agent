@@ -21,6 +21,8 @@ import (
 	"fmt"
 
 	"github.com/elastic/beats/libbeat/logp"
+	"github.com/elastic/beats/packetbeat/decoder/ipdefrag/ip4defrag"
+	"github.com/elastic/beats/packetbeat/decoder/ipdefrag/ip6defrag"
 	"github.com/elastic/beats/packetbeat/flows"
 	"github.com/elastic/beats/packetbeat/model"
 	"github.com/elastic/beats/packetbeat/protos"
@@ -65,6 +67,9 @@ type Decoder struct {
 	// hold current flow ID
 	flowID              *flows.FlowID // buffer flowID among many calls
 	flowIDBufferBacking [flows.SizeFlowIDMax]byte
+
+	ipv4Defragmenter *ip4defrag.IPv4Defragmenter
+	ipv6Defragmenter *ip6defrag.IPv6Defragmenter
 }
 
 const (
@@ -128,6 +133,9 @@ func New(
 	default:
 		return nil, fmt.Errorf("Unsupported link type: %s", datalink.String())
 	}
+
+	d.ipv4Defragmenter = ip4defrag.NewIPv4Defragmenter()
+	d.ipv6Defragmenter = ip6defrag.NewIPv6Defragmenter()
 
 	return &d, nil
 }
@@ -242,12 +250,40 @@ func (d *Decoder) decode(data []byte, ci *gopacket.CaptureInfo) {
 		d.flows.Lock()
 		defer d.flows.Unlock()
 	}
-	
+
 	for len(data) > 0 {
 		err := current.DecodeFromBytes(data, d)
 		if err != nil {
 			logp.Info("packet decode failed with: %v", err)
 			break
+		}
+
+		if currentType == layers.LayerTypeIPv4 {
+			ip4 := d.ip4[d.stIP4.i]
+			out, err := d.ipv4Defragmenter.DefragIPv4(&ip4)
+			if err != nil {
+				logp.Info("packet fragment decode failed with: %v", err)
+				break
+			}
+
+			if out == nil { // defragment not done yet
+				break
+			}
+			d.ip4[d.stIP4.i] = *out
+			current = out
+		}else if currentType == layers.LayerTypeIPv6 {
+			ip6 := d.ip6[d.stIP6.i]
+			out, err := d.ipv6Defragmenter.DefragIPv6(&ip6)
+			if err != nil {
+				logp.Info("packet fragment decode failed with: %v", err)
+				break
+			}
+
+			if out == nil { // defragment not done yet
+				break
+			}
+			d.ip6[d.stIP6.i] = *out
+			current = out
 		}
 
 		nextType := current.NextLayerType()
