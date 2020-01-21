@@ -80,7 +80,7 @@ class ErrorMessage():
     NOT_FOUND_URL = "No such URL."
 
 BLACK_LIST_VIEW = ["_bind"]
-IPV4_PARTERN  = r'(?:[0-9]{1,3}\.){3}[0-9]{1,3}'
+IPV4_PARTERN  = r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:/\d{1,2}|)'
 IPV6SEG  = r'(?:(?:[0-9a-fA-F]){1,4})'
 IPV6GROUPS = (
     r'(?:' + IPV6SEG + r':){7,7}' + IPV6SEG,                  # 1:2:3:4:5:6:7:8
