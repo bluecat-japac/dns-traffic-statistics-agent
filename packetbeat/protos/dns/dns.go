@@ -87,6 +87,7 @@ type transport uint8
 var (
 	unmatchedRequests  = monitoring.NewInt(nil, "dns.unmatched_requests")
 	unmatchedResponses = monitoring.NewInt(nil, "dns.unmatched_responses")
+	listTruncateRespID = make(map[uint16]bool)
 )
 
 const (
@@ -496,6 +497,10 @@ func (dns *dnsPlugin) publishTransaction(t *dnsTransaction) {
 			record.Resource = t.request.data.Question[0].Name
 		}
 		dnsRec = toDNSRecord(t.request.data, dns.includeAuthorities, dns.includeAdditionals)
+		if listTruncateRespID[t.request.data.Id] {
+			delete(listTruncateRespID, t.request.data.Id)
+			return
+		}
 	} else if t.response != nil {
 		record.BytesOut = t.response.length
 		record.Method = dnsOpCodeToString(t.response.data.Opcode)
@@ -1274,7 +1279,12 @@ func decodeDNSHeader(transp transport, rawData []byte) (dns *mkdns.Msg, err erro
 func handleErrorMsg(srcIP, dstIP string, transp transport, rawData []byte, tuple common.IPPortTuple) {
 	dnsHdr, _ := decodeDNSHeader(transp, rawData)
 	if dnsHdr.Response {
-		statsdns.HandleResponseDecodeErr(dstIP, srcIP, dnsResponseCodeToString(dnsHdr.MsgHdr.Rcode))
+		if dnsHdr.MsgHdr.Truncated == true {
+			listTruncateRespID[dnsHdr.MsgHdr.Id] = true
+			statsdns.HandleResponseTruncated(dstIP, srcIP)
+		} else {
+			statsdns.HandleResponseDecodeErr(dstIP, srcIP, dnsResponseCodeToString(dnsHdr.MsgHdr.Rcode))
+		}	
 	} else {
 		statsdns.CreateCounterMetric(srcIP, dstIP)
 		statsdns.HandleRequestDecodeErr(srcIP, dstIP)

@@ -741,3 +741,14 @@ func HandleResponseDecodeErr(clientIP, srvIP string, RCodeString string) {
 		}
 	}
 }
+
+func HandleResponseTruncated(clientIP, srvIP string) {
+	if !utils.IsInternalCall(clientIP, srvIP) {
+		if !utils.IsLocalIP(clientIP) {
+			IncrDNSStatsSuccessful(clientIP)
+			IncrDNSStatsSuccessfulForPerView(clientIP, CLIENT)
+			IncrDNSStatsTotalResponses(clientIP)
+			ResponseForPerView(clientIP)
+		}
+	}
+}
