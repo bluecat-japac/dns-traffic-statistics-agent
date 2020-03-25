@@ -47,8 +47,7 @@ for count in range(int(number_client)):
                 "other_rcode": 10,
                 "average_time": 0.115,
                 "successful_recursive": 12,
-                "successful_noauthans": 0,
-                "truncated": 1
+                "successful_noauthans": 0
             }
         }
     })

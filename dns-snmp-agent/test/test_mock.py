@@ -38,8 +38,7 @@ payload = {
 		  "other_rcode": 0,
 		  "average_time": 0.1444,
 		  "successful_recursive": 12,
-		  "successful_noauthans": 0,
-		  "truncated": 10
+		  "successful_noauthans": 0
 	    }
   	},
   	"192.168.88.123": {
@@ -59,8 +58,7 @@ payload = {
 		  "other_rcode": 0,
 		  "average_time": 4.112,
 		  "successful_recursive": 0,
-		  "successful_noauthans": 30,
-		  "truncated": 0
+		  "successful_noauthans": 30
 	    }
   	},
 	"view_2": {
@@ -80,8 +78,7 @@ payload = {
 			"average_time": 0.22,
 			"other_rcode": 0,
 			"successful_recursive": 0,
-		  	"successful_noauthans": 0,
-			"truncated": 10
+		  	"successful_noauthans": 0
       	}
     }
   }

@@ -53,8 +53,7 @@ class QryType():
         "refused": 11,
         "other_rcode": 12,
         "successful_recursive": 13,
-        "successful_noauthans": 14,
-        "truncated": 15
+        "successful_noauthans": 14
     }
     METRIC_FOR_BIND_VIEW = {
         "totalQueries": 1,

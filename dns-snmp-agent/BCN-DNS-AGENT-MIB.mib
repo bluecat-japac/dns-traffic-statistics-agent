@@ -88,8 +88,7 @@ BcnDnsStatAgentQryTypes   ::= TEXTUAL-CONVENTION
 		bcnDnsStatAgentQryREFUSED(11),
 		bcnDnsStatAgentQryOtherRcode(12),
         bcnDnsStatAgentQrySuccessfulRecursive(13),
-        bcnDnsStatAgentQrySuccessfulNoauthAns(14),
-        bcnDnsStatAgentQryTruncated(15)
+        bcnDnsStatAgentQrySuccessfulNoauthAns(14)
     }
 
 BcnDnsBindStatPerViewAgentQryTypes   ::= TEXTUAL-CONVENTION
@@ -111,8 +110,7 @@ BcnDnsBindStatPerViewAgentQryTypes   ::= TEXTUAL-CONVENTION
 			QryRTT1600: Queries whose round trip times are between 800 (inclusive) and 1600 (exclusive) milliseconds.
 			QryRTT1600Plus: Queries whose round trip times are equal to or over 1600 milliseconds.
 			QryREFUSED: Queries that resulted in REFUSED responses
-			QryOtherError: Queries that resulted in an error that was not NXDOMAIN, SERVFAIL, FORMERR or REFUSED.
-            QryTruncated: Queries that resulted in TRUNCATE responses"
+			QryOtherError: Queries that resulted in an error that was not NXDOMAIN, SERVFAIL, FORMERR or REFUSED"
     SYNTAX  Integer32 {
         bcnStatAgentViewTotalQueries(1),
         bcnStatAgentViewTotalResponses(2),
