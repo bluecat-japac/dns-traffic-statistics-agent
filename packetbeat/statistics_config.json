@@ -1,7 +1,7 @@
 {
-    "statistics_destination": "http://127.0.0.1:8080/counter", 
+    "statistics_destination": "http://127.0.0.1:51415/counter", 
     "statistics_interval": 60,
     "maximum_clients": 200,
-    "url_announcement_bam_deploy":"http://127.0.0.1:8888/announcement-deploy-from-bam",
+    "url_announcement_bam_deploy":"http://127.0.0.1:51415/announcement-deploy-from-bam",
     "interval_clear_outstatis_cache": 180
 }

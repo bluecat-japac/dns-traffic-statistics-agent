@@ -43,6 +43,7 @@ import (
 	/////Bluecat Disable Old Statistic
 	//"github.com/elastic/beats/packetbeat/stats"
 	"github.com/elastic/beats/packetbeat/statsdns"
+	"github.com/elastic/beats/packetbeat/utils"
 	mkdns "github.com/miekg/dns"
 	"golang.org/x/net/publicsuffix"
 )
@@ -87,6 +88,7 @@ type transport uint8
 var (
 	unmatchedRequests  = monitoring.NewInt(nil, "dns.unmatched_requests")
 	unmatchedResponses = monitoring.NewInt(nil, "dns.unmatched_responses")
+	listTruncateRespID = make(map[uint16]bool)
 )
 
 const (
@@ -353,10 +355,19 @@ func (dns *dnsPlugin) ConnectionTimeout() time.Duration {
 func (dns *dnsPlugin) receivedDNSRequest(tuple *dnsTuple, msg *dnsMessage) {
 	// TODO [Bluecat]
 	debugf("DNS Processing query. %s", tuple.String())
+	// [Bluecat]
+	srcIP := msg.tuple.SrcIP.String()
+	dstIP := msg.tuple.DstIP.String()
+
+	// Don't receive internal DNS request
+	if utils.IsInternalCall(srcIP, dstIP) {
+		return
+	}
+
 	//Bluecat
-	statsdns.CreateCounterMetric(msg.tuple.SrcIP.String(), msg.tuple.DstIP.String())
-	statsdns.IncreaseQueryCounter(msg.tuple.SrcIP.String(), msg.tuple.DstIP.String(), statsdns.QUERY)
-	statsdns.IncreaseQueryCounterForPerView(msg.tuple.SrcIP.String(), msg.tuple.DstIP.String(), statsdns.QUERY)
+	statsdns.CreateCounterMetric(srcIP, dstIP)
+	statsdns.IncreaseQueryCounter(srcIP, dstIP, statsdns.QUERY)
+	statsdns.IncreaseQueryCounterForPerView(srcIP, dstIP, statsdns.QUERY)
 
 	trans := dns.deleteTransaction(tuple.hashable())
 	if trans != nil {
@@ -391,9 +402,16 @@ func (dns *dnsPlugin) receivedDNSRequest(tuple *dnsTuple, msg *dnsMessage) {
 func (dns *dnsPlugin) receivedDNSResponse(tuple *dnsTuple, msg *dnsMessage) {
 	// TODO [Bluecat]
 	debugf("Processing response. %s", tuple.String())
+	srcIP := msg.tuple.SrcIP.String()
+	dstIP := msg.tuple.DstIP.String()
+	// Don't receive internal DNS response
+	if utils.IsInternalCall(srcIP, dstIP) {
+		return
+	}
+
 	// Bluecat
-	statsdns.IncreaseQueryCounter(msg.tuple.SrcIP.String(), msg.tuple.DstIP.String(), statsdns.RESPONSE)
-	statsdns.IncreaseQueryCounterForPerView(msg.tuple.SrcIP.String(), msg.tuple.DstIP.String(), statsdns.RESPONSE)
+	statsdns.IncreaseQueryCounter(srcIP, dstIP, statsdns.RESPONSE)
+	statsdns.IncreaseQueryCounterForPerView(srcIP, dstIP, statsdns.RESPONSE)
 
 	trans := dns.getTransaction(tuple.revHashable())
 	if trans == nil {
@@ -496,6 +514,10 @@ func (dns *dnsPlugin) publishTransaction(t *dnsTransaction) {
 			record.Resource = t.request.data.Question[0].Name
 		}
 		dnsRec = toDNSRecord(t.request.data, dns.includeAuthorities, dns.includeAdditionals)
+		if listTruncateRespID[t.request.data.Id] {
+			delete(listTruncateRespID, t.request.data.Id)
+			return
+		}
 	} else if t.response != nil {
 		record.BytesOut = t.response.length
 		record.Method = dnsOpCodeToString(t.response.data.Opcode)
@@ -516,6 +538,9 @@ func (dns *dnsPlugin) publishTransaction(t *dnsTransaction) {
 	// stats.IncrKafkaPublished()
 
 	logp.Debug("Record Decoded", "%v", record)
+	if record.Status != common.OK_STATUS {
+		return
+	}
 	statsdns.ReceivedMessage(record)
 	// debugf("dns result: %v", structs.Map(record))
 	// dns.results(beat.Event{
@@ -1274,7 +1299,12 @@ func decodeDNSHeader(transp transport, rawData []byte) (dns *mkdns.Msg, err erro
 func handleErrorMsg(srcIP, dstIP string, transp transport, rawData []byte, tuple common.IPPortTuple) {
 	dnsHdr, _ := decodeDNSHeader(transp, rawData)
 	if dnsHdr.Response {
-		statsdns.HandleResponseDecodeErr(dstIP, srcIP, dnsResponseCodeToString(dnsHdr.MsgHdr.Rcode))
+		if dnsHdr.MsgHdr.Truncated == true {
+			listTruncateRespID[dnsHdr.MsgHdr.Id] = true
+			statsdns.HandleResponseTruncated(dstIP, srcIP)
+		} else {
+			statsdns.HandleResponseDecodeErr(dstIP, srcIP, dnsResponseCodeToString(dnsHdr.MsgHdr.Rcode))
+		}
 	} else {
 		statsdns.CreateCounterMetric(srcIP, dstIP)
 		statsdns.HandleRequestDecodeErr(srcIP, dstIP)
