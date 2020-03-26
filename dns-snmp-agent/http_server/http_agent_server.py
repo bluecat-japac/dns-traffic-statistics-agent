@@ -32,14 +32,15 @@ except ImportError:
     from http.server import HTTPServer
 
 import json
-import re
 import traceback
-from config import logger, HTTP_CONFIGURATION, NAMED_PATH_FILE
-from common.constants import QryType, StatisticPerType, TableOidStr, IPV4_PARTERN, IPV6_PARTERN
-from common.common import mili_to_micro, FileExcution, micro_to_mili, is_ip_in_list_cidr
+from config import logger, HTTP_CONFIGURATION
+from common.constants import QryType, StatisticPerType, TableOidStr
+from common.common import mili_to_micro, micro_to_mili
 from common.bind import get_stats_views
-global AGENT, MIB_TABLE, ROW_DICT
-AGENT, MIB_TABLE = None, None
+from http_server import named
+
+global AGENT, MIB_TABLE, ROW_DICT, NAMED_CONFIGURATION
+AGENT, MIB_TABLE, NAMED_CONFIGURATION = None, None, None
 ROW_DICT = {}
 
 
@@ -96,44 +97,7 @@ def get_table_by_type(stat_type, is_time_table=False):
         return None
         
 
-def get_regex_by_type(per_type):
-    regex = ".*"
-    if per_type == StatisticPerType.CLIENT:
-        regex = "acl _TrafficStatisticsAgent_Clients.+"
-    elif per_type == StatisticPerType.SERVER:
-        regex = 'acl _TrafficStatisticsAgent_Servers.+'
-    elif per_type == StatisticPerType.VIEW:
-        regex = 'view \".+\"'
-    return regex
-
-
-def get_addr_acl(per_type, file_excution):
-    regex = get_regex_by_type(per_type)
-    findall_acl_addr = file_excution.findall_data(regex)
-
-    list_ip = []
-    list_ip_range = []
-    for acl in findall_acl_addr:
-        addrs_acl = re.findall("{}|{}".format(IPV4_PARTERN, IPV6_PARTERN), acl)
-        for addr_acl in addrs_acl:
-            if addr_acl in list_ip or addr_acl in list_ip_range or addr_acl[-1] == ':':
-                continue
-            elif "/" in addr_acl:
-                list_ip_range.append(addr_acl)
-            else:
-                list_ip.append(addr_acl)
-    return list_ip, list_ip_range
-
-
-def get_view_acl(file_excution):
-    regex = get_regex_by_type(StatisticPerType.VIEW)
-    findall_views = file_excution.findall_data(regex)
-    views = [view[6:-1] for view in findall_views]
-    return views
-
-
-def set_view_default_named(file_excution):
-    views = get_view_acl(file_excution)
+def set_view_default_named(views):
     pb_view_metrics = QryType.METRIC_FOR_AGENT.keys()
     pb_view_metrics.append(QryType.METRIC_AVG_TIME)
     bind_view_metrics = QryType.METRIC_FOR_BIND_VIEW.keys()
@@ -146,8 +110,7 @@ def set_view_default_named(file_excution):
             AgentServer.update_to_mib_table(StatisticPerType.BIND_VIEW, view, metric_name, 0)
 
 
-def set_clients_default_named(file_excution):
-    clients, _ = get_addr_acl(StatisticPerType.CLIENT, file_excution)
+def set_clients_default_named(clients):
     metrics = QryType.METRIC_FOR_AGENT.keys()
     metrics.append(QryType.METRIC_AVG_TIME)
     for client in clients:
@@ -156,8 +119,7 @@ def set_clients_default_named(file_excution):
             AgentServer.update_to_mib_table(StatisticPerType.CLIENT, client, metric_name, 0)
 
 
-def set_servers_default_named(file_excution):
-    servers, _ = get_addr_acl(StatisticPerType.SERVER, file_excution)
+def set_servers_default_named(servers):
     metrics = QryType.METRIC_FOR_AGENT.keys()
     metrics.append(QryType.METRIC_AVG_TIME)
     for server in servers:
@@ -166,72 +128,63 @@ def set_servers_default_named(file_excution):
             AgentServer.update_to_mib_table(StatisticPerType.SERVER, server, metric_name, 0)
 
 
-def get_stats_after_deploy(type):
-    import collections
-    file_excution = FileExcution(NAMED_PATH_FILE)
-
+def parse_to_ls_stats(type, group_datas):
     list_statistic_data = []
-    group_addrs = collections.defaultdict(list)
 
-    list_ip, list_ip_range = get_addr_acl(type, file_excution)
-    logger.debug("List IP in ACL: {}".format(list_ip))
-    logger.debug("List IP CIDR in ACL: {}".format(list_ip_range))
-
-    qry_table = get_table_by_type(type)
-    qry_table_value = qry_table["table_value"].values()[1:]
-    for value in qry_table_value:
-        if value[1] not in list_ip and not is_ip_in_list_cidr(value[1], list_ip_range):
-            continue
-        group_addrs[value[1]].append(value)
     average_time_table = get_table_by_type(type, True)
     average_time_table_value = average_time_table['table'].value().values()[1:]
     
     metrics = {id: metrics_name for metrics_name, id in QryType.METRIC_FOR_AGENT.items()}
-    for ip, values in group_addrs.items():
+    for ip_or_view, values in group_datas.items():
         dnsmetrics = {}
         for value in values:
             dnsmetrics.update({metrics[value[2]]: int(value[3])})
-        average_time = get_average_time(ip, average_time_table_value)
+        average_time = get_average_time(ip_or_view, average_time_table_value)
         # Need to change average_time from micro to milisecend 
         dnsmetrics.update({"average_time": micro_to_mili(average_time)})
         stat = {
-            "ip_or_view": ip, 
+            "ip_or_view": ip_or_view, 
             "type": type, 
             "dnsmetrics": dnsmetrics}
         list_statistic_data.append(stat)
     return list_statistic_data
 
 
-def get_stats_view_after_deploy(type):
+def get_stats_acl_after_deploy(acl_traffic):
     import collections
-    file_excution = FileExcution(NAMED_PATH_FILE)
+
+    group_addrs = collections.defaultdict(list)
+
+    logger.debug("List IP in ACL: {}".format(acl_traffic.list_ip))
+    logger.debug("List IP CIDR in ACL: {}".format(acl_traffic.list_ip_cdir))
+
+    qry_table = get_table_by_type(acl_traffic.type)
+    qry_table_value = qry_table["table_value"].values()[1:]
+    for value in qry_table_value:
+        if not acl_traffic.is_ip_available_acl(value[1]):
+            continue
+        group_addrs[value[1]].append(value)
+
+    list_statistic_data = parse_to_ls_stats(acl_traffic.type, group_addrs)
+    return list_statistic_data
+
+
+def get_stats_view_after_deploy(dns_view):
+    type = StatisticPerType.VIEW
+    import collections
 
     list_statistic_data = []
     group_views = collections.defaultdict(list)
-
-    views = get_view_acl(file_excution)
+    
+    views = dns_view.list_views_name
     qry_table = get_table_by_type(type)
     qry_table_value = qry_table["table_value"].values()[1:]
     for value in qry_table_value:
         if value[1] not in views:
             continue
         group_views[value[1]].append(value)
-    average_time_table = get_table_by_type(type, True)
-    average_time_table_value = average_time_table['table'].value().values()[1:]
-
-    metrics = {id: metrics_name for metrics_name, id in QryType.METRIC_FOR_AGENT.items()}
-    for view, values in group_views.items():
-        dnsmetrics = {}
-        for value in values:
-            dnsmetrics.update({metrics[value[2]]: int(value[3])})
-        average_time = get_average_time(view, average_time_table_value)
-        # Need to change average_time from micro to milisecend 
-        dnsmetrics.update({"average_time": micro_to_mili(average_time)})
-        stat = {
-            "ip_or_view": view, 
-            "type": type, 
-            "dnsmetrics": dnsmetrics}
-        list_statistic_data.append(stat)
+    
+    list_statistic_data = parse_to_ls_stats(type, group_views)
     return list_statistic_data
 
 
@@ -274,20 +227,21 @@ def reformat_pb_content(pb_request_content):
 
 
 class AgentServer(BaseHTTPRequestHandler):
+    @classmethod
+    def validate_traffic_input(cls, per_type, ip_or_view):
+        if per_type == StatisticPerType.VIEW:
+            return NAMED_CONFIGURATION.dns_view.is_available(ip_or_view)
+        elif per_type == StatisticPerType.SERVER:
+            return NAMED_CONFIGURATION.acl_traffic_server.is_ip_available_acl(ip_or_view)
+        elif per_type == StatisticPerType.CLIENT:
+            return NAMED_CONFIGURATION.acl_traffic_client.is_ip_available_acl(ip_or_view)
 
     @classmethod
     def set_default_stats(cls):
         try:
-            file_excution = FileExcution(NAMED_PATH_FILE)
-            if file_excution.contents is None:
-                logger.warn("Named.conf is not exist")
-                pass
-
-            # logger.debug("{}".format(str(file_excution.content)))
-            stats_default = dict({"stats_map": dict()})
-            views_default = set_view_default_named(file_excution)
-            clients_default = set_clients_default_named(file_excution)
-            servers_default = set_servers_default_named(file_excution)
+            set_view_default_named(NAMED_CONFIGURATION.dns_view.list_views_name)
+            set_clients_default_named(NAMED_CONFIGURATION.acl_traffic_client.list_ip)
+            set_servers_default_named(NAMED_CONFIGURATION.acl_traffic_server.list_ip)
         except Exception as ex:
             logger.error("AgentServer init error: {}".format(ex))
             logger.error(traceback.format_exc())
@@ -382,6 +336,8 @@ class AgentServer(BaseHTTPRequestHandler):
         for statistic in list_statistic_data:
             ip_or_view = statistic['ip_or_view']
             stat_type = statistic['type']
+            if not cls.validate_traffic_input(stat_type, ip_or_view):
+                continue
             metrics = statistic['dnsmetrics']
             for metric_name in metrics:
                 value = metrics[metric_name]
@@ -446,10 +402,11 @@ class AgentServer(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps(response_content).encode())
             elif self.path == '/announcement-deploy-from-bam':
                 logger.info("Announcement deploy from bam")
+                NAMED_CONFIGURATION.load_configuration()
                 list_statistic_data = []
-                list_statistic_data += get_stats_after_deploy(StatisticPerType.CLIENT)
-                list_statistic_data += get_stats_after_deploy(StatisticPerType.SERVER)
-                list_statistic_data += get_stats_view_after_deploy(StatisticPerType.VIEW)
+                list_statistic_data += get_stats_acl_after_deploy(NAMED_CONFIGURATION.acl_traffic_client)
+                list_statistic_data += get_stats_acl_after_deploy(NAMED_CONFIGURATION.acl_traffic_server)
+                list_statistic_data += get_stats_view_after_deploy(NAMED_CONFIGURATION.dns_view)
                 clean_all_table_agent()
                 self.update_mib_stat_counter(list_statistic_data)
                 # self.send_response(200, "SUCCESSFUL")
@@ -458,6 +415,8 @@ class AgentServer(BaseHTTPRequestHandler):
                 self.send_response(404, "NOT FOUND")
         except Exception:
                 logger.error(traceback.format_exc())
+
+
 class HTTPAgnetServer(HTTPServer):
     def server_bind(self):
         import socket
@@ -471,13 +430,15 @@ def start_http_server(agent_input, table_input):
         agent_input {[Agent]} -- [netsnmpagent.netsnmpAgent]
         table_input {[dict]} -- [netsnmpagent.netsnmpAgent.table]
     """
-    global AGENT, MIB_TABLE
+    global AGENT, MIB_TABLE, NAMED_CONFIGURATION
     AGENT = agent_input
     MIB_TABLE = table_input
 
     logger.info("Start http agent server")
     httpd = None
     try:
+        NAMED_CONFIGURATION = named.NamedConfiguration()
+        NAMED_CONFIGURATION.load_configuration()
         AgentServer.set_default_stats()
         MIB_TABLE[TableOidStr.STAT_PER_CLIENT]["table_value"] = MIB_TABLE[TableOidStr.STAT_PER_CLIENT]["table"].value()
         MIB_TABLE[TableOidStr.STAT_PER_SERVER]["table_value"] = MIB_TABLE[TableOidStr.STAT_PER_SERVER]["table"].value()
