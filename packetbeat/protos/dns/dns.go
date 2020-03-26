@@ -43,6 +43,7 @@ import (
 	/////Bluecat Disable Old Statistic
 	//"github.com/elastic/beats/packetbeat/stats"
 	"github.com/elastic/beats/packetbeat/statsdns"
+	"github.com/elastic/beats/packetbeat/utils"
 	mkdns "github.com/miekg/dns"
 	"golang.org/x/net/publicsuffix"
 )
@@ -354,10 +355,19 @@ func (dns *dnsPlugin) ConnectionTimeout() time.Duration {
 func (dns *dnsPlugin) receivedDNSRequest(tuple *dnsTuple, msg *dnsMessage) {
 	// TODO [Bluecat]
 	debugf("DNS Processing query. %s", tuple.String())
+	// [Bluecat]
+	srcIP := msg.tuple.SrcIP.String()
+	dstIP := msg.tuple.DstIP.String()
+
+	// Don't receive internal DNS request
+	if utils.IsInternalCall(srcIP, dstIP) {
+		return
+	}
+
 	//Bluecat
-	statsdns.CreateCounterMetric(msg.tuple.SrcIP.String(), msg.tuple.DstIP.String())
-	statsdns.IncreaseQueryCounter(msg.tuple.SrcIP.String(), msg.tuple.DstIP.String(), statsdns.QUERY)
-	statsdns.IncreaseQueryCounterForPerView(msg.tuple.SrcIP.String(), msg.tuple.DstIP.String(), statsdns.QUERY)
+	statsdns.CreateCounterMetric(srcIP, dstIP)
+	statsdns.IncreaseQueryCounter(srcIP, dstIP, statsdns.QUERY)
+	statsdns.IncreaseQueryCounterForPerView(srcIP, dstIP, statsdns.QUERY)
 
 	trans := dns.deleteTransaction(tuple.hashable())
 	if trans != nil {
@@ -392,9 +402,16 @@ func (dns *dnsPlugin) receivedDNSRequest(tuple *dnsTuple, msg *dnsMessage) {
 func (dns *dnsPlugin) receivedDNSResponse(tuple *dnsTuple, msg *dnsMessage) {
 	// TODO [Bluecat]
 	debugf("Processing response. %s", tuple.String())
+	srcIP := msg.tuple.SrcIP.String()
+	dstIP := msg.tuple.DstIP.String()
+	// Don't receive internal DNS response
+	if utils.IsInternalCall(srcIP, dstIP) {
+		return
+	}
+
 	// Bluecat
-	statsdns.IncreaseQueryCounter(msg.tuple.SrcIP.String(), msg.tuple.DstIP.String(), statsdns.RESPONSE)
-	statsdns.IncreaseQueryCounterForPerView(msg.tuple.SrcIP.String(), msg.tuple.DstIP.String(), statsdns.RESPONSE)
+	statsdns.IncreaseQueryCounter(srcIP, dstIP, statsdns.RESPONSE)
+	statsdns.IncreaseQueryCounterForPerView(srcIP, dstIP, statsdns.RESPONSE)
 
 	trans := dns.getTransaction(tuple.revHashable())
 	if trans == nil {
@@ -521,6 +538,9 @@ func (dns *dnsPlugin) publishTransaction(t *dnsTransaction) {
 	// stats.IncrKafkaPublished()
 
 	logp.Debug("Record Decoded", "%v", record)
+	if record.Status != common.OK_STATUS {
+		return
+	}
 	statsdns.ReceivedMessage(record)
 	// debugf("dns result: %v", structs.Map(record))
 	// dns.results(beat.Event{
@@ -1284,7 +1304,7 @@ func handleErrorMsg(srcIP, dstIP string, transp transport, rawData []byte, tuple
 			statsdns.HandleResponseTruncated(dstIP, srcIP)
 		} else {
 			statsdns.HandleResponseDecodeErr(dstIP, srcIP, dnsResponseCodeToString(dnsHdr.MsgHdr.Rcode))
-		}	
+		}
 	} else {
 		statsdns.CreateCounterMetric(srcIP, dstIP)
 		statsdns.HandleRequestDecodeErr(srcIP, dstIP)

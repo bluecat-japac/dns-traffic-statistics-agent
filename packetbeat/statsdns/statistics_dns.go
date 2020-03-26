@@ -1,11 +1,11 @@
 // Copyright 2019 BlueCat Networks (USA) Inc. and its affiliates
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -47,6 +47,7 @@ const (
 	QUERY      = "Query"
 	RESPONSE   = "Response"
 	RQ_ERR_MAP = "Formerr"
+	NXRRSET    = "NXRRSET"
 )
 
 type (
@@ -140,18 +141,25 @@ func InitStatisticsDNS() {
 	}()
 }
 
-//Create statistics for perClient, perServer and perView. Note metricType="perView" => (key of map statistic clientIP = key viewName)
-func newStats(clientIp string, metricType string) bool {
-	// Don't want to be calculating the internal messages or ip that doesn't in range in config statistics_config.json
+func IsValidInACL(statIP string, metricType string) bool{
 	switch metricType {
 	case CLIENT:
-		if !utils.CheckIPInRanges(clientIp, IpNetsClient, IpsClient) {
+		if !utils.CheckIPInRanges(statIP, IpNetsClient, IpsClient) {
 			return false
 		}
 	case AUTHSERVER:
-		if !utils.CheckIPInRanges(clientIp, IpNetsServer, IpsServer) {
+		if !utils.CheckIPInRanges(statIP, IpNetsServer, IpsServer) {
 			return false
 		}
+	}
+	return true
+}
+
+//Create statistics for perClient, perServer and perView. Note metricType="perView" => (key of map statistic clientIP = key viewName)
+func newStats(clientIp string, metricType string) bool {
+	// Don't want to be calculating the internal messages or ip that doesn't in range in config statistics_config.json
+	if !IsValidInACL(clientIp, metricType) {
+		return false
 	}
 	if _, exist := StatSrv.StatsMap[clientIp]; !exist {
 		averagetime := float64(0)
@@ -201,7 +209,6 @@ func ReceivedMessage(msg *model.Record) {
 			}
 		} else {
 			// Referral: NOERROR, no answer and NS records in Authority
-			// NXRRSet: NOERROR and no answer
 			var foundNS = false
 			if authoritiesCount > 0 {
 				for _, author := range msg.DNS.Authorities {
@@ -215,11 +222,12 @@ func ReceivedMessage(msg *model.Record) {
 			if foundNS {
 				IncrDNSStatsReferral(clientIP)
 				IncrDNSStatsReferralForPerView(clientIP, metricType)
-			} else {
-				IncrDNSStatsNXRRSet(clientIP)
-				IncrDNSStatsNXRRSetForPerView(clientIP, metricType)
 			}
 		}
+	} else if responseCode == NXRRSET {
+		// RRCode == 8 and answersCount == 0
+		IncrDNSStatsNXRRSet(clientIP)
+		IncrDNSStatsNXRRSetForPerView(clientIP, metricType)
 	} else if responseCode == NXDOMAIN {
 		IncrDNSStatsNXDomain(clientIP)
 		IncrDNSStatsNXDomainForPerView(clientIP, metricType)
@@ -244,13 +252,7 @@ func ReceivedMessage(msg *model.Record) {
 	CalculateAverageTimePerView(clientIP, responseTime, metricType)
 }
 
-//Create metric for the Client/AS/Forwarder
-func CreateCounterMetric(srcIp string, dstIp string) {
-	if utils.IsInternalCall(srcIp, dstIp) {
-		return
-	}
-	var statIP string
-	var metricType string
+func CheckMetricType(srcIp string, dstIp string) (statIP string, metricType string){
 	if utils.IsLocalIP(dstIp) {
 		statIP = srcIp
 		metricType = CLIENT
@@ -258,6 +260,15 @@ func CreateCounterMetric(srcIp string, dstIp string) {
 		statIP = dstIp
 		metricType = AUTHSERVER
 	}
+	return
+}
+
+//Create metric for the Client/AS/Forwarder
+func CreateCounterMetric(srcIp string, dstIp string) {
+	// if utils.IsInternalCall(srcIp, dstIp) {
+	// 	return
+	// }
+	statIP, metricType := CheckMetricType(srcIp, dstIp)
 	newStats(statIP, metricType)
 }
 
@@ -278,10 +289,30 @@ func Queries(srcIp string, dstIp string) {
 	if !utils.IsLocalIP(srcIp) {
 		if _, exist := StatSrv.StatsMap[srcIp]; exist {
 			IncrDNSStatsTotalQueries(srcIp)
+		} else {
+			go func() {
+				delayTicker := time.NewTicker(1 * time.Second)
+				<- delayTicker.C
+				status := newStats(srcIp, CLIENT)
+				if status == false {
+					return
+				}
+				IncrDNSStatsTotalQueries(srcIp)
+			}()
 		}
 	} else {
 		if _, exist := StatSrv.StatsMap[dstIp]; exist {
 			IncrDNSStatsTotalQueries(dstIp)
+		} else {
+			go func(){
+				delayTicker := time.NewTicker(1 * time.Second)
+				<- delayTicker.C
+				status := newStats(dstIp, AUTHSERVER)
+				if status == false{
+					return
+				}
+				IncrDNSStatsTotalQueries(dstIp)
+			}()
 		}
 	}
 }
@@ -298,10 +329,30 @@ func Response(srcIp string, dstIp string) {
 	if !utils.IsLocalIP(dstIp) {
 		if _, exist := StatSrv.StatsMap[dstIp]; exist {
 			IncrDNSStatsTotalResponses(dstIp)
+		} else {
+			go func(){
+				delayTicker := time.NewTicker(1 * time.Second)
+				<- delayTicker.C
+				status := newStats(dstIp, CLIENT)
+				if status == false{
+					return
+				}
+				IncrDNSStatsTotalResponses(dstIp)
+			}()
 		}
 	} else {
 		if _, exist := StatSrv.StatsMap[srcIp]; exist {
 			IncrDNSStatsTotalResponses(srcIp)
+		} else {
+			go func() {
+				delayTicker := time.NewTicker(1 * time.Second)
+				<- delayTicker.C
+				status := newStats(srcIp, AUTHSERVER)
+				if status == false {
+					return
+				}
+				IncrDNSStatsTotalResponses(srcIp)
+			}()
 		}
 	}
 }
@@ -315,9 +366,9 @@ func ResponseForPerView(dstIp string) {
 }
 
 func IncreaseQueryCounter(srcIp string, dstIp string, mode string) {
-	if utils.IsInternalCall(srcIp, dstIp) {
-		return
-	}
+	// if utils.IsInternalCall(srcIp, dstIp) {
+	// 	return
+	// }
 	switch mode {
 	case QUERY:
 		Queries(srcIp, dstIp)
@@ -329,9 +380,9 @@ func IncreaseQueryCounter(srcIp string, dstIp string, mode string) {
 }
 
 func IncreaseQueryCounterForPerView(srcIp string, dstIp string, mode string) {
-	if utils.IsInternalCall(srcIp, dstIp) {
-		return
-	}
+	// if utils.IsInternalCall(srcIp, dstIp) {
+	// 	return
+	// }
 	switch mode {
 	case QUERY:
 		QueriesForPerView(srcIp)

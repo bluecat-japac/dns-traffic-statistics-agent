@@ -193,6 +193,8 @@ def main():
     ###
     #	Start agent
     ###
+    version = "v2.3"
+    logger.info("Start DNS Statistic Agent verion {}".format(version))
     http_proccess = None
     try:
         agent, mib_table = initialize(prg_name)
