@@ -537,10 +537,10 @@ func (dns *dnsPlugin) publishTransaction(t *dnsTransaction) {
 	// }
 	// stats.IncrKafkaPublished()
 
-	logp.Debug("Record Decoded", "%v", record)
-	if record.Status != common.OK_STATUS {
-		return
-	}
+	// logp.Debug("Record Decoded", "%v", record)
+	// if record.Status != common.OK_STATUS {
+	// 	return
+	// }
 	statsdns.ReceivedMessage(record)
 	// debugf("dns result: %v", structs.Map(record))
 	// dns.results(beat.Event{
