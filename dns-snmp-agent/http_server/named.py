@@ -35,7 +35,10 @@ class AclTrafficStatisticsAgent():
     def __init__(self, per_type, file_excution):
         self.type = per_type
         self.file_excution = file_excution
-        self.list_ip, self.list_ip_cdir = self.__get_addr_acl()
+        # If named is None(not exist) OR named is empty,
+        # will set list_ip and list_ip_cdir is empty list.
+        self.list_ip, self.list_ip_cdir = self.__get_addr_acl() if self.file_excution.contents \
+             else ([], [])
 
     def __get_addr_acl(self):
         regex = get_regex_by_type(self.type)
@@ -64,7 +67,10 @@ class AclTrafficStatisticsAgent():
 class ViewDNS():
     def __init__(self, file_excution):
         self.file_excution = file_excution
-        self.list_views_name = self.__get_view_acl()
+        # If named is None(not exist) OR named is empty,
+        # will set list_views_name is empty list.
+        self.list_views_name = self.__get_view_acl() if self.file_excution.contents \
+             else []
 
     def __get_view_acl(self):
         regex = get_regex_by_type(StatisticPerType.VIEW)
@@ -85,8 +91,6 @@ class NamedConfiguration():
 
     def __load_file(self):
         self.file_excution = FileExcution(NAMED_PATH_FILE)
-        if self.file_excution.contents is None:
-            raise Exception("Named.conf is not exist")
 
     def load_configuration(self):
         self.__load_file()

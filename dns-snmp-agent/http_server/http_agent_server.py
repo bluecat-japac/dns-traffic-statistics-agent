@@ -34,6 +34,7 @@ except ImportError:
 import json
 import traceback
 from config import logger, HTTP_CONFIGURATION
+from common import exception as c_except
 from common.constants import QryType, StatisticPerType, TableOidStr
 from common.common import mili_to_micro, micro_to_mili
 from common.bind import get_stats_views
@@ -403,6 +404,8 @@ class AgentServer(BaseHTTPRequestHandler):
             elif self.path == '/announcement-deploy-from-bam':
                 logger.info("Announcement deploy from bam")
                 NAMED_CONFIGURATION.load_configuration()
+                if NAMED_CONFIGURATION.file_excution.contents is None:
+                    logger.warning("Announcement deploy from bam: {}".format(str(c_except.NamedNotExist())))
                 list_statistic_data = []
                 list_statistic_data += get_stats_acl_after_deploy(NAMED_CONFIGURATION.acl_traffic_client)
                 list_statistic_data += get_stats_acl_after_deploy(NAMED_CONFIGURATION.acl_traffic_server)
@@ -439,6 +442,8 @@ def start_http_server(agent_input, table_input):
     try:
         NAMED_CONFIGURATION = named.NamedConfiguration()
         NAMED_CONFIGURATION.load_configuration()
+        if NAMED_CONFIGURATION.file_excution.contents is None:
+            logger.warning("start_http_server: {}".format(str(c_except.NamedNotExist())))
         AgentServer.set_default_stats()
         MIB_TABLE[TableOidStr.STAT_PER_CLIENT]["table_value"] = MIB_TABLE[TableOidStr.STAT_PER_CLIENT]["table"].value()
         MIB_TABLE[TableOidStr.STAT_PER_SERVER]["table_value"] = MIB_TABLE[TableOidStr.STAT_PER_SERVER]["table"].value()
