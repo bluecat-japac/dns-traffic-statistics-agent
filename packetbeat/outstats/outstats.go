@@ -19,7 +19,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sync"
-	"time"
+	// "time"
 
 	"github.com/elastic/beats/libbeat/logp"
 	"github.com/elastic/beats/packetbeat/config_statistics"
@@ -32,22 +32,22 @@ var (
 )
 
 func init() {
-	go func() {
-		logp.Info("Interval Clear Out Statis Cache %v", config_statistics.ConfigStat.IntervalClearOutStatisCache)
-		//Prevent Statistic config file hasn't already loaded
-		for config_statistics.ConfigStat.IntervalClearOutStatisCache == 0 {
-			logp.Info("Interval Clear Out Statis Cache %v", config_statistics.ConfigStat.IntervalClearOutStatisCache)
-		}
-		ticker := time.NewTicker(time.Duration(config_statistics.ConfigStat.IntervalClearOutStatisCache) * time.Second)
-		for {
-			t := <-ticker.C
-			mutex.Lock()
-			logp.Info("Clear first element in cache Data %s", t)
-			popElementInCache()
-			logp.Debug("outstats", "CACHED DATA %v", cacheData)
-			mutex.Unlock()
-		}
-	}()
+	// go func() {
+	// 	logp.Info("Interval Clear Out Statis Cache %v", config_statistics.ConfigStat.IntervalClearOutStatisCache)
+	// 	//Prevent Statistic config file hasn't already loaded
+	// 	for config_statistics.ConfigStat.IntervalClearOutStatisCache == 0 {
+	// 		logp.Info("Interval Clear Out Statis Cache %v", config_statistics.ConfigStat.IntervalClearOutStatisCache)
+	// 	}
+	// 	ticker := time.NewTicker(time.Duration(config_statistics.ConfigStat.IntervalClearOutStatisCache) * time.Second)
+	// 	for {
+	// 		t := <-ticker.C
+	// 		mutex.Lock()
+	// 		logp.Info("Clear first element in cache Data %s", t)
+	// 		popElementInCache()
+	// 		logp.Debug("outstats", "CACHED DATA %v", cacheData)
+	// 		mutex.Unlock()
+	// 	}
+	// }()
 }
 
 func popElementInCache() {
@@ -92,13 +92,14 @@ func resendData() {
 func PublishToSNMPAgent(data string) {
 	resp, err := sendData(data)
 	if err != nil {
-		pushElementInCache(data)
-		logp.Debug("outstats", "CACHED DATA %v", cacheData)
-		logp.Error(err)
+		// pushElementInCache(data)
+		// logp.Debug("outstats", "CACHED DATA %v", cacheData)
+		logp.Err("outstats: Cannot send data to agent")
+		// logp.Error(str(err)
 		return
 	} else {
 		printHttpBodyResult(resp)
-		resendData()
+		// resendData()
 	}
 
 	defer resp.Body.Close()
