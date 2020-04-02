@@ -107,6 +107,7 @@ func InitStatisticsDNS() {
 	GetConfigDNSStatistics()
 	go func() {
 		ticker := time.NewTicker(StatInterval * time.Second)
+		defer ticker.Stop()
 		StatSrv = &StatisticsService{Start: time.Now(), StatsMap: make(map[string]*StatisticsDNS, MaximumClients)}
 		ReqMap = &RequestMap{RequestMessage: make(map[string]map[string]string, MaximumClients)}
 		//===================Create Counter For PerView============================
@@ -291,8 +292,7 @@ func Queries(srcIp string, dstIp string) {
 			IncrDNSStatsTotalQueries(srcIp)
 		} else {
 			go func() {
-				delayTicker := time.NewTicker(1 * time.Second)
-				<- delayTicker.C
+				time.Sleep(time.Second)
 				status := newStats(srcIp, CLIENT)
 				if status == false {
 					return
@@ -305,8 +305,7 @@ func Queries(srcIp string, dstIp string) {
 			IncrDNSStatsTotalQueries(dstIp)
 		} else {
 			go func(){
-				delayTicker := time.NewTicker(1 * time.Second)
-				<- delayTicker.C
+				time.Sleep(time.Second)
 				status := newStats(dstIp, AUTHSERVER)
 				if status == false{
 					return
@@ -331,8 +330,7 @@ func Response(srcIp string, dstIp string) {
 			IncrDNSStatsTotalResponses(dstIp)
 		} else {
 			go func(){
-				delayTicker := time.NewTicker(1 * time.Second)
-				<- delayTicker.C
+				time.Sleep(time.Second)
 				status := newStats(dstIp, CLIENT)
 				if status == false{
 					return
@@ -345,8 +343,7 @@ func Response(srcIp string, dstIp string) {
 			IncrDNSStatsTotalResponses(srcIp)
 		} else {
 			go func() {
-				delayTicker := time.NewTicker(1 * time.Second)
-				<- delayTicker.C
+				time.Sleep(time.Second)
 				status := newStats(srcIp, AUTHSERVER)
 				if status == false {
 					return
