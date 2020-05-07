@@ -46,7 +46,7 @@ jobs:
           command: |
             export GOROOT=/usr/local/go
             export GOPATH=$HOME/gocode
-            export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
+            export PATH=$HOME/gocode/bin:/usr/local/go/bin:$PATH
       - run:
           name: Test Go
           command: go version
