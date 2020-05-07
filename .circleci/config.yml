@@ -44,10 +44,9 @@ jobs:
       - run:
           name: Setup Go Environment Variables
           command: |
-            echo "export GOROOT=/usr/local/go" >> $BASH_ENV
-            echo "export GOPATH=$HOME/gocode" >> $BASH_ENV
-            echo "export PATH=$GOPATH/bin:$GOROOT/bin:$PATH" >> $BASH_ENV
-            source $BASH_ENV
+            export GOROOT=/usr/local/go
+            export GOPATH=$HOME/gocode
+            export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
       - run:
           name: Test Go
           command: go version
