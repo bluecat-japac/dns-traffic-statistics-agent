@@ -48,7 +48,7 @@ jobs:
           command: |
             export GOROOT=/usr/local/go
             export GOPATH=$HOME/gocode
-            export PATH=$GOPATH:$GOROOT/bin:$PATH
+            export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
       - run:
           name: Clone packetbeat project
           command: |
