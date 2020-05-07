@@ -41,7 +41,7 @@ jobs:
           command: |
             if [ ! -d /usr/local/go ]; then
                 wget -q https://dl.google.com/go/$GO_TGZ
-                tar -zxf $GO_TGZ -C /usr/local go
+                sudo tar -zxf $GO_TGZ -C /usr/local go
             fi
       - run:
           name: Setup Go Environment Variables
