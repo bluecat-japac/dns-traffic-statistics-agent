@@ -62,6 +62,6 @@ jobs:
       - run:
           name: Build packetbeat
           command: |
-            cd ${GOPATH}/src/github.com/elastic/beats/packetbeat
-            go get -v ./...
-            go build -v
+            cd ${GOPATH}/src
+            go get -v github.com/elastic/beats/packetbeat
+            go build -v github.com/elastic/beats/packetbeat
