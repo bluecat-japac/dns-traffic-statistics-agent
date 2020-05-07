@@ -54,11 +54,11 @@ jobs:
           command: |
             mkdir -p $GOPATH/src/github.com/elastic/beats
             git clone --branch v6.5.4 https://github.com/elastic/beats.git $GOPATH/src/github.com/elastic/beats
-      - run:
-          name: Replace BLuecat packetbeat.
-          command: |
-            rm -rf ${GOPATH}/src/github.com/elastic/beats/packetbeat
-            cp -rf ~/repo/packetbeat ${GOPATH}/src/github.com/elastic/beats/packetbeat
+#      - run:
+#          name: Replace BLuecat packetbeat.
+#          command: |
+#            rm -rf ${GOPATH}/src/github.com/elastic/beats/packetbeat
+#            cp -rf ~/repo/packetbeat ${GOPATH}/src/github.com/elastic/beats/packetbeat
       - run:
           name: Build packetbeat
           command: |
