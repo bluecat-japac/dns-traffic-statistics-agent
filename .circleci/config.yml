@@ -50,13 +50,22 @@ jobs:
             export GOPATH=$HOME/gocode
             export PATH=$HOME/gocode/bin:/usr/local/go/bin:$PATH
       - run:
-          name: Test Go
-          command: go version
-#      - run:
-#          name: Clone packetbeat project
-#          command: |
-#            mkdor -p
-#            git clone --branch v6.5.4 https://github.com/elastic/beats.git /go/src/github.com/elastic/beats
+          name: Clone packetbeat project
+          command: |
+            mkdir -p $HOME/gocode/src/github.com/elastic/beats
+            git clone --branch v6.5.4 https://github.com/elastic/beats.git ${GOPATH}/gocode/src/github.com/elastic/beats
+      - run:
+          name: Replace BLuecat packetbeat.
+          command: |
+            rm -rf ${GOPATH}/src/github.com/elastic/beats/packetbeat
+            cp -rf /home/circleci/repo/packetbeat ${GOPATH}/src/github.com/elastic/beats/packetbeat
+            cd ${GOPATH}/src/github.com/elastic/beats/packetbeat
+      - run:
+          name: Build packetbeat
+          command: |
+            cd ${GOPATH}/src/github.com/elastic/beats/packetbeat
+            go get ./...
+            go build
       #- run: ls -la /go/src/github.com/elastic/beats
       #- run: cd /go/src && go get -d github.com/elastic/beats/packetbeat
       #- run: go get -v -d github.com/elastic/beats/packetbeat
