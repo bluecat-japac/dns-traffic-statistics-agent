@@ -18,13 +18,24 @@ jobs:
     ####   /go/src/github.com/circleci/go-tool
     ####   /go/src/bitbucket.org/circleci/go-tool
     #working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
+    environment:
+      BEAT_VERSION: v6.5.4
+      GO_TGZ: go1.10.8.linux-amd64.tar.gz
     working_directory: ~/repo
     steps:
       - checkout
 
       # specify any bash command here prefixed with `run: `
-      - run: sudo apt-get update -q
-      - run: sudo apt-get install -q -y wget git git-doc gcc gcc-doc make make-doc gcc-multilib glibc-doc manpages-dev libpcap-dev
+      - run:
+          name: Setup Environment Variables
+          command: |
+            echo $BEAT_VERSION
+            echo $GO_TGZ
+      - run:
+          name: Update and install required libraries.
+          command: |
+            sudo apt-get update -q
+            sudo apt-get install -q -y wget git git-doc gcc gcc-doc make make-doc gcc-multilib glibc-doc manpages-dev libpcap-dev
       #- run: git clone --branch v6.5.4 https://github.com/elastic/beats.git /go/src/github.com/elastic/beats
       #- run: ls -la /go/src/github.com/elastic/beats
       #- run: cd /go/src && go get -d github.com/elastic/beats/packetbeat
