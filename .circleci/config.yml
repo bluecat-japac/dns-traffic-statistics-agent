@@ -48,8 +48,8 @@ jobs:
             echo "export GOPATH=$HOME/gocode" >> $BASH_ENV
             echo "export PATH=$GOPATH/bin:$GOROOT/bin:$PATH" >> $BASH_ENV
             source $BASH_ENV
-            ls -la /usr/local go
-            echo $GOROOT
+            ls -la /usr/local/go
+            $GOROOT/bin/go version
             echo GOPATH
 #      - run:
 #          name: Clone packetbeat project
