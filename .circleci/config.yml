@@ -36,9 +36,9 @@ jobs:
           command: |
             sudo apt-get update -q
             sudo apt-get install -q -y wget git git-doc gcc gcc-doc make make-doc gcc-multilib glibc-doc manpages-dev libpcap-dev
-            sudo add-apt-repository ppa:gophers/archive
-            sudo apt update
-            sudo apt install golang-1.11-go
+            sudo add-apt-repository ppa:gophers/archive -y
+            sudo apt update -y
+            sudo apt install golang-1.11-go -y
 #      - run:
 #          name: Setup Golang environment
 #          command: |
@@ -50,9 +50,9 @@ jobs:
 #            export GOROOT=/usr/local/go
 #            export GOPATH=$HOME/gocode
 #            export PATH=$HOME/gocode/bin:/usr/local/go/bin:$PATH
-#      - run:
-#          name: Test Go
-#          command: go version
+      - run:
+          name: Test Go
+          command: go version
 #      - run:
 #          name: Clone packetbeat project
 #          command: |
