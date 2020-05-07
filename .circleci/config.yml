@@ -26,11 +26,11 @@ jobs:
       - checkout
 
       # specify any bash command here prefixed with `run: `
-      - run:
-          name: Setup Environment Variables
-          command: |
-            echo $BEAT_VERSION
-            echo $GO_TGZ
+#      - run:
+#          name: Setup Environment Variables
+#          command: |
+#            echo $BEAT_VERSION
+#            echo $GO_TGZ
       - run:
           name: Update and install required libraries.
           command: |
@@ -39,10 +39,8 @@ jobs:
       - run:
           name: Setup Golang environment
           command: |
-            if [ ! -d /usr/local/go ]; then
-                wget -q https://dl.google.com/go/$GO_TGZ
-                sudo tar -zxf $GO_TGZ -C /usr/local go
-            fi
+            wget -q https://dl.google.com/go/$GO_TGZ
+            sudo tar -zxf $GO_TGZ -C /usr/local go
       - run:
           name: Setup Go Environment Variables
           command: |
@@ -50,7 +48,9 @@ jobs:
             echo "export GOPATH=$HOME/gocode" >> $BASH_ENV
             echo "export PATH=$GOPATH/bin:$GOROOT/bin:$PATH" >> $BASH_ENV
             source $BASH_ENV
-            go version
+            ls -la /usr/local go
+            echo $GOROOT
+            echo GOPATH
 #      - run:
 #          name: Clone packetbeat project
 #          command: |
