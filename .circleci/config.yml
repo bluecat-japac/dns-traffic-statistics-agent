@@ -4,9 +4,11 @@
 version: 2
 jobs:
   build:
-    docker:
-      # specify the version
-      - image: cimg/base:stable
+#    docker:
+#      # specify the version
+#      - image: cimg/base:stable
+    machine:
+      image: ubuntu-1604:201903-01 # # recommended linux image - includes Ubuntu 16.04, docker 18.09.3, docker-compose 1.23.1
 
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
@@ -36,20 +38,17 @@ jobs:
           command: |
             sudo apt-get update -q
             sudo apt-get install -q -y wget git git-doc gcc gcc-doc make make-doc gcc-multilib glibc-doc manpages-dev libpcap-dev
-            sudo add-apt-repository ppa:gophers/archive -y
-            sudo apt update -y
-            sudo apt install golang-1.11-go -y
-#      - run:
-#          name: Setup Golang environment
-#          command: |
-#            wget -q https://dl.google.com/go/$GO_TGZ
-#            sudo tar -zxf $GO_TGZ -C /usr/local go
-#      - run:
-#          name: Setup Go Environment Variables
-#          command: |
-#            export GOROOT=/usr/local/go
-#            export GOPATH=$HOME/gocode
-#            export PATH=$HOME/gocode/bin:/usr/local/go/bin:$PATH
+      - run:
+          name: Setup Golang environment
+          command: |
+            wget -q https://dl.google.com/go/$GO_TGZ
+            sudo tar -zxf $GO_TGZ -C /usr/local go
+      - run:
+          name: Setup Go Environment Variables
+          command: |
+            export GOROOT=/usr/local/go
+            export GOPATH=$HOME/gocode
+            export PATH=$HOME/gocode/bin:/usr/local/go/bin:$PATH
       - run:
           name: Test Go
           command: go version
