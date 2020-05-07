@@ -36,7 +36,26 @@ jobs:
           command: |
             sudo apt-get update -q
             sudo apt-get install -q -y wget git git-doc gcc gcc-doc make make-doc gcc-multilib glibc-doc manpages-dev libpcap-dev
-      #- run: git clone --branch v6.5.4 https://github.com/elastic/beats.git /go/src/github.com/elastic/beats
+      - run:
+          name: Setup Golang environment
+          command: |
+            if [ ! -d /usr/local/go ]; then
+                wget -q https://dl.google.com/go/$GO_TGZ
+                tar -zxf $gotgz -C /usr/local go
+            fi
+      - run:
+          name: Setup Go Environment Variables
+          command: |
+            echo "export GOROOT=/usr/local/go" >> $BASH_ENV
+            echo "export GOPATH=$HOME/gocode" >> $BASH_ENV
+            echo "export PATH=$GOPATH/bin:$GOROOT/bin:$PATH" >> $BASH_ENV
+            source $BASH_ENV
+            go version
+#      - run:
+#          name: Clone packetbeat project
+#          command: |
+#            mkdor -p
+#            git clone --branch v6.5.4 https://github.com/elastic/beats.git /go/src/github.com/elastic/beats
       #- run: ls -la /go/src/github.com/elastic/beats
       #- run: cd /go/src && go get -d github.com/elastic/beats/packetbeat
       #- run: go get -v -d github.com/elastic/beats/packetbeat
