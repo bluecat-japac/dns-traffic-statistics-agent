@@ -65,4 +65,4 @@ jobs:
             cd ${GOPATH}/src/github.com/elastic/beats/packetbeat
             go version
             go get .
-            go build -v
+            go build -v .
