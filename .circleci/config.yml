@@ -60,10 +60,10 @@ jobs:
 #          command: |
 #            rm -rf ${GOPATH}/src/github.com/elastic/beats/packetbeat
 #            cp -rf ~/repo/packetbeat ${GOPATH}/src/github.com/elastic/beats/packetbeat
-#      - run:
-#          name: Build packetbeat
-#          command: |
-#            cd ${GOPATH}/src/github.com/elastic/beats/packetbeat
-#            go version
-#            go get .
+      - run:
+          name: Build packetbeat
+          command: |
+            cd ${GOPATH}/src/
+            go version
+            go get -v github.com/elastic/beats/packetbeat
 #            go build -v .
