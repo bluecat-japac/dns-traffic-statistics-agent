@@ -23,8 +23,8 @@ jobs:
       - checkout
 
       # specify any bash command here prefixed with `run: `
-      - run: apt-get update -q
-      - run: apt-get install -q -y wget git git-doc gcc gcc-doc make make-doc gcc-multilib glibc-doc manpages-dev libpcap-dev
+      - run: sudo apt-get update -q
+      - run: sudo apt-get install -q -y wget git git-doc gcc gcc-doc make make-doc gcc-multilib glibc-doc manpages-dev libpcap-dev
       #- run: git clone --branch v6.5.4 https://github.com/elastic/beats.git /go/src/github.com/elastic/beats
       #- run: ls -la /go/src/github.com/elastic/beats
       #- run: cd /go/src && go get -d github.com/elastic/beats/packetbeat
