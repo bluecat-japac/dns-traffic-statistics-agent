@@ -26,5 +26,5 @@ jobs:
       - run: mkdir -p /go/src/github.com/elastic
       - run: git clone --branch v6.5.4 https://github.com/elastic/beats.git /go/src/github.com/elastic/beats
       - run: ls -la /go/src/github.com/elastic/beats
-      #- run: go get -v -t -d ./...
+      - run: cd /go/src && go get -d /github.com/elastic/beats/packetbeat
       #- run: go test -v ./...
