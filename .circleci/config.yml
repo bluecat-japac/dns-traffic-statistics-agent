@@ -53,7 +53,7 @@ jobs:
           name: Clone packetbeat project
           command: |
             mkdir -p $GOPATH/src/github.com/elastic/beats
-            git clone --branch v6.5.4 https://github.com/elastic/beats.git $GOPATH/src/github.com/elastic/beats
+            git clone --branch $BEAT_VERSION https://github.com/elastic/beats ${GOPATH}/src/github.com/elastic/beats
 #      - run:
 #          name: Replace BLuecat packetbeat.
 #          command: |
@@ -62,6 +62,6 @@ jobs:
       - run:
           name: Build packetbeat
           command: |
-            cd ${GOPATH}/src
-            go get -v github.com/elastic/beats/packetbeat
-            go build -v github.com/elastic/beats/packetbeat
+            cd ${GOPATH}/src/github.com/elastic/beats/packetbeat
+            go get ./...
+            go build -v
