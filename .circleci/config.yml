@@ -76,4 +76,4 @@ jobs:
             go get -u github.com/tcnksm/ghr
             ls -la $GOPATH/bin
             $GOPATH/bin/ghr --help
-            ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete v2.1.1 $HOME/artifacts/
+            ghr -debug -t 43f1f16aa40413d2ec54f576f2cb72dd43132c37 -u haihuynh-bluecat -r dns-traffic-statistics-agent -c f7686cc1c20cdc6dc6e6208963f06af01b51b68d -delete v2.1 $HOME/artifacts/
