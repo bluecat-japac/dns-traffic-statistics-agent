@@ -25,7 +25,6 @@ jobs:
       GO_TGZ: go1.10.8.linux-amd64.tar.gz
       GOROOT: "/usr/local/go"
       GOPATH: "$HOME/gocode"
-#      PATH: "${GOPATH}/bin:${GOROOT}/bin:${PATH}"
     working_directory: ~/repo
     steps:
       - checkout
@@ -46,12 +45,10 @@ jobs:
           command: |
             wget -q https://dl.google.com/go/$GO_TGZ
             sudo tar -zxf $GO_TGZ -C /usr/local go
-#      - run:
-#          name: Setup Go Environment Variables
-#          command: |
-#            export GOROOT=/usr/local/go
-#            export GOPATH=$HOME/gocode
-#            export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
+      - run:
+          name: Setup Go Environment Variables
+          command: |
+            export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
       - run:
           name: Clone packetbeat project
           command: |
