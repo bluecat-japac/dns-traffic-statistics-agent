@@ -62,3 +62,4 @@ jobs:
             cd $GOPATH/src/github.com/elastic/beats/packetbeat
             go get -t -d -v ./...
             go build -v
+            ls -la
