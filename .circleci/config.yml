@@ -32,7 +32,7 @@ jobs:
           name: Update and install required libraries.
           command: |
             sudo apt-get update -q
-            sudo apt-get install -q -y wget git git-doc gcc gcc-doc make make-doc gcc-multilib glibc-doc manpages-dev libpcap-dev
+            sudo apt-get install -q -y gcc gcc-doc make make-doc gcc-multilib glibc-doc manpages-dev libpcap-dev
       - run:
           name: Setup Golang environment
           command: |
@@ -52,7 +52,6 @@ jobs:
             cd $GOPATH/src/github.com/elastic
             mkdir -p $HOME/.go_workspace/src/github.com/elastic/beats
             cd $GOPATH/src/github.com/elastic/beats
-            ln -s . $HOME/.go_workspace/src/github.com/elastic/beats
             git clone --branch $BEAT_VERSION https://github.com/elastic/beats .
 #      - run:
 #          name: Replace BLuecat packetbeat.
@@ -64,5 +63,5 @@ jobs:
           command: |
             cd $GOPATH
             go version
-            go get -v github.com/elastic/beats
+            go get -v github.com/elastic/beats/packetbeat
 #            go build -v github.com/elastic/beats/packetbeat
