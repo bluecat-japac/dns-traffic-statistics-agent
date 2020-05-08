@@ -4,11 +4,11 @@
 version: 2
 jobs:
   build:
-    docker:
-      # specify the version
-      - image: cimg/base:stable
-#    machine:
-#      image: ubuntu-1604:201903-01
+#    docker:
+#      # specify the version
+#      - image: cimg/base:stable
+    machine:
+      image: ubuntu-1604:201903-01
 
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
@@ -23,19 +23,14 @@ jobs:
     environment:
       BEAT_VERSION: v6.5.4
       GO_TGZ: go1.10.8.linux-amd64.tar.gz
-#      GOROOT: "/usr/local/go"
-#      GOPATH: "$HOME/gocode"
+      GOROOT: "/usr/local/go"
+      GOPATH: "$HOME/gocode"
 #      PATH: "${GOPATH}/bin:${GOROOT}/bin:${PATH}"
     working_directory: ~/repo
     steps:
       - checkout
 
       # specify any bash command here prefixed with `run: `
-#      - run:
-#          name: Setup Environment Variables
-#          command: |
-#            echo $BEAT_VERSION
-#            echo $GO_TGZ
       - run:
           name: Update and install required libraries.
           command: |
@@ -49,8 +44,8 @@ jobs:
       - run:
           name: Setup Go Environment Variables
           command: |
-            export GOROOT=/usr/local/go
-            export GOPATH=$HOME/gocode
+#            export GOROOT=/usr/local/go
+#            export GOPATH=$HOME/gocode
             export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
       - run:
           name: Clone packetbeat project
