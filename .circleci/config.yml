@@ -50,9 +50,7 @@ jobs:
           command: |
             mkdir -p $GOPATH/src/github.com/elastic
             cd $GOPATH/src/github.com/elastic
-            mkdir -p $HOME/.go_workspace/src/github.com/elastic/beats
-            cd $GOPATH/src/github.com/elastic/beats
-            git clone --branch $BEAT_VERSION https://github.com/elastic/beats .
+            git clone --branch $BEAT_VERSION https://github.com/elastic/beats
 #      - run:
 #          name: Replace BLuecat packetbeat.
 #          command: |
