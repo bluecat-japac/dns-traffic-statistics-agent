@@ -8,10 +8,7 @@ jobs:
 #      # specify the version
 #      - image: cimg/base:stable
     machine:
-      - image: ubuntu-1604:201903-01
-        environment:
-          BEAT_VERSION: v6.5.4
-          GO_TGZ: go1.10.8.linux-amd64.tar.gz
+      image: ubuntu-1604:201903-01
 
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
@@ -23,7 +20,9 @@ jobs:
     ####   /go/src/github.com/circleci/go-tool
     ####   /go/src/bitbucket.org/circleci/go-tool
     #working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
-
+    environment:
+      BEAT_VERSION: v6.5.4
+      GO_TGZ: go1.10.8.linux-amd64.tar.gz
     working_directory: ~/repo
     steps:
       - checkout
@@ -43,14 +42,13 @@ jobs:
           name: Setup Go Environment Variables
           command: |
             export GOROOT=/usr/local/go
-            export GOPATH=$HOME/gocode
             export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
-      - run:
-          name: Clone packetbeat project
-          command: |
-            mkdir -p $GOPATH/src/github.com/elastic
-            cd $GOPATH/src/github.com/elastic
-            git clone --branch $BEAT_VERSION https://github.com/elastic/beats
+#      - run:
+#          name: Clone packetbeat project
+#          command: |
+#            mkdir -p $GOPATH/src/github.com/elastic
+#            cd $GOPATH/src/github.com/elastic
+#            git clone --branch $BEAT_VERSION https://github.com/elastic/beats
 #      - run:
 #          name: Replace BLuecat packetbeat.
 #          command: |
@@ -59,7 +57,7 @@ jobs:
       - run:
           name: Build packetbeat
           command: |
-            cd $GOPATH/src/
+            export GOPATH=$HOME/gocode
             go version
-            go get -v github.com/elastic/beats/packetbeat
-            go build -v github.com/elastic/beats/packetbeat
+            go get -v github.com/elastic/beats
+#            go build -v github.com/elastic/beats/packetbeat
