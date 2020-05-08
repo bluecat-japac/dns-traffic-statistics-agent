@@ -63,8 +63,10 @@ jobs:
             cd $GOPATH/src/github.com/elastic/beats/packetbeat
             go get -t -d -v ./...
             go build
+            tar -czvf packetbeat.tar.gz packetbeat
             mkdir -p $HOME/artifacts
-            cp $GOPATH/src/github.com/elastic/beats/packetbeat/packetbeat $HOME/artifacts
+            cp $GOPATH/src/github.com/elastic/beats/packetbeat/packetbeat.tar.gz $HOME/artifacts
+            
       - attach_workspace:
           at: $HOME/artifacts
       - run:
