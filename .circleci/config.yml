@@ -41,13 +41,14 @@ jobs:
       - run:
           name: Setup Go Environment Variables
           command: |
-            touch ~/repo/.go
+#            touch ~/repo/.go
             export CGO_ENABLED="1"
             export GOPATH=$HOME/gocode
             export PATH=/usr/local/go/bin:$PATH
       - run:
           name: Clone packetbeat project
           command: |
+            export GOPATH=$HOME/gocode
             mkdir -p $GOPATH/src/github.com/elastic
             cd $GOPATH/src/github.com/elastic
             git clone --branch $BEAT_VERSION https://github.com/elastic/beats
@@ -62,6 +63,6 @@ jobs:
             export GOPATH=$HOME/gocode
             go version
             go env
-            cd $GOPATH/github.com/elastic/beats/packetbeat
+            cd $GOPATH/src/github.com/elastic/beats/packetbeat
             go get -t -d -v ./...
-            go build -v github.com/elastic/beats/packetbeat
+            go build -v
