@@ -61,5 +61,6 @@ jobs:
           command: |
             cd $GOPATH
             go version
+            go env -w GOPATH=$HOME/gocode
             go get -v github.com/elastic/beats/packetbeat
 #            go build -v github.com/elastic/beats/packetbeat
