@@ -4,11 +4,11 @@
 version: 2
 jobs:
   build:
-#    docker:
-#      # specify the version
-#      - image: cimg/base:stable
-    machine:
-      image: ubuntu-1604:201903-01 # # recommended linux image - includes Ubuntu 16.04, docker 18.09.3, docker-compose 1.23.1
+    docker:
+      # specify the version
+      - image: cimg/base:stable
+#    machine:
+#      image: ubuntu-1604:201903-01
 
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
