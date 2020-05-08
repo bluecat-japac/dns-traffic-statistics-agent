@@ -8,7 +8,10 @@ jobs:
 #      # specify the version
 #      - image: cimg/base:stable
     machine:
-      image: ubuntu-1604:201903-01
+      - image: ubuntu-1604:201903-01
+        environment:
+          BEAT_VERSION: v6.5.4
+          GO_TGZ: go1.10.8.linux-amd64.tar.gz
 
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
@@ -20,9 +23,7 @@ jobs:
     ####   /go/src/github.com/circleci/go-tool
     ####   /go/src/bitbucket.org/circleci/go-tool
     #working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
-      environment:
-        BEAT_VERSION: v6.5.4
-        GO_TGZ: go1.10.8.linux-amd64.tar.gz
+
     working_directory: ~/repo
     steps:
       - checkout
