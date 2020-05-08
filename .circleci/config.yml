@@ -62,6 +62,6 @@ jobs:
             export GOPATH=$HOME/gocode
             go version
             go env
-#            cd $GOPATH/github.com/elastic/beats/packetbeat
-#            go get -t -d -v ./...
-#            go build -v github.com/elastic/beats/packetbeat
+            cd $GOPATH/github.com/elastic/beats/packetbeat
+            go get -t -d -v ./...
+            go build -v github.com/elastic/beats/packetbeat
