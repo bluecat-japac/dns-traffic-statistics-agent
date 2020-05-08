@@ -72,4 +72,6 @@ jobs:
           command: |
             export GOPATH=$HOME/gocode
             go get -u github.com/tcnksm/ghr
-            ghr -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} $HOME/artifacts/
+            ls -la $GOPATH/bin
+            $GOPATH/bin/ghr --help
+            ghr -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete v2.1.1 $HOME/artifacts/
