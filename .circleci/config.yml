@@ -61,4 +61,4 @@ jobs:
             cd $GOPATH/src/
             go version
             go get -v github.com/elastic/beats/packetbeat
-            go build .
+#            go build -v github.com/elastic/beats/packetbeat
