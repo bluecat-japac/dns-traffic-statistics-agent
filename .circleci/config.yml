@@ -59,8 +59,8 @@ jobs:
       - run:
           name: Build packetbeat
           command: |
-            cd $GOPATH
+            cd $GOPATH/github.com/elastic/beats/packetbeat
             go version
-            go env -w GOPATH=$HOME/gocode
-            go get -v github.com/elastic/beats/packetbeat
+            go env
+            go get -t -d -v ./...
 #            go build -v github.com/elastic/beats/packetbeat
