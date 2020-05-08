@@ -20,9 +20,9 @@ jobs:
     ####   /go/src/github.com/circleci/go-tool
     ####   /go/src/bitbucket.org/circleci/go-tool
     #working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
-    environment:
-      BEAT_VERSION: v6.5.4
-      GO_TGZ: go1.10.8.linux-amd64.tar.gz
+      environment:
+        BEAT_VERSION: v6.5.4
+        GO_TGZ: go1.10.8.linux-amd64.tar.gz
     working_directory: ~/repo
     steps:
       - checkout
@@ -60,5 +60,5 @@ jobs:
           command: |
             cd $GOPATH/src/
             go version
-            go get -v github.com/elastic/beats/packetbeat 2>/dev/null
+            go get -v github.com/elastic/beats/packetbeat
             go build -v github.com/elastic/beats/packetbeat
