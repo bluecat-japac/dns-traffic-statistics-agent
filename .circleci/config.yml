@@ -23,6 +23,9 @@ jobs:
     environment:
       BEAT_VERSION: v6.5.4
       GO_TGZ: go1.10.8.linux-amd64.tar.gz
+      GOROOT: "/usr/local/go"
+      GOPATH: "$HOME/gocode"
+      PATH: "${GOPATH}/bin:${GOROOT}/bin:${PATH}"
     working_directory: ~/repo
     steps:
       - checkout
@@ -43,18 +46,17 @@ jobs:
           command: |
             wget -q https://dl.google.com/go/$GO_TGZ
             sudo tar -zxf $GO_TGZ -C /usr/local go
-      - run:
-          name: Setup Go Environment Variables
-          command: |
-            export GOROOT=/usr/local/go
-            export GOPATH=$HOME/gocode
-            export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
+#      - run:
+#          name: Setup Go Environment Variables
+#          command: |
+#            export GOROOT=/usr/local/go
+#            export GOPATH=$HOME/gocode
+#            export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
       - run:
           name: Clone packetbeat project
           command: |
-            mkdir -p $GOPATH/src/github.com/elastic/beats
+            mkdir -p ${GOPATH}/src/github.com/elastic/beats
             git clone --branch $BEAT_VERSION https://github.com/elastic/beats ${GOPATH}/src/github.com/elastic/beats
-            ls -la ${GOPATH}/src/github.com/elastic/beats
 #      - run:
 #          name: Replace BLuecat packetbeat.
 #          command: |
@@ -65,5 +67,5 @@ jobs:
           command: |
             cd ${GOPATH}/src/
             go version
-            go get github.com/elastic/beats/packetbeat
+            go get -v github.com/elastic/beats/packetbeat
             go build .
