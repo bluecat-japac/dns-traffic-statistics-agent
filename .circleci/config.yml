@@ -74,4 +74,4 @@ jobs:
             go get -u github.com/tcnksm/ghr
             ls -la $GOPATH/bin
             $GOPATH/bin/ghr --help
-            ghr -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete v2.1.1 $HOME/artifacts/
+            ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete v2.1.1 $HOME/artifacts/
