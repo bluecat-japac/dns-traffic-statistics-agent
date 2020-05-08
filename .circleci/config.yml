@@ -66,7 +66,6 @@ jobs:
             tar -czvf packetbeat.tar.gz packetbeat
             mkdir -p $HOME/artifacts
             cp $GOPATH/src/github.com/elastic/beats/packetbeat/packetbeat.tar.gz $HOME/artifacts
-            
       - attach_workspace:
           at: $HOME/artifacts
       - run:
@@ -75,5 +74,7 @@ jobs:
             export GOPATH=$HOME/gocode
             go get -u github.com/tcnksm/ghr
             ls -la $GOPATH/bin
+            echo $CIRCLE_PROJECT_USERNAME
+            echo $CIRCLE_PROJECT_REPONAME
             $GOPATH/bin/ghr --help
-            $GOPATH/bin/ghr -debug -t 43f1f16aa40413d2ec54f576f2cb72dd43132c37 -u haihuynh-bluecat -r dns-traffic-statistics-agent -c f7686cc1c20cdc6dc6e6208963f06af01b51b68d -delete v2.1 $HOME/artifacts/
+            # $GOPATH/bin/ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete v2.1.1 $HOME/artifacts/
