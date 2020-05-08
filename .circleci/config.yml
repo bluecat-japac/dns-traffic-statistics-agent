@@ -40,11 +40,7 @@ jobs:
             sudo tar -vzxf $GO_TGZ -C /usr/local go
       - run:
           name: Setup Go Environment Variables
-          command: |
-#            touch ~/repo/.go
-            export CGO_ENABLED="1"
-            export GOPATH=$HOME/gocode
-            export PATH=/usr/local/go/bin:$PATH
+          command: export PATH=/usr/local/go/bin:$PATH
       - run:
           name: Clone packetbeat project
           command: |
