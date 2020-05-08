@@ -40,14 +40,16 @@ jobs:
             sudo tar -vzxf $GO_TGZ -C /usr/local go
       - run:
           name: Setup Go Environment Variables
-          command: export PATH=/usr/local/go/bin:$PATH
-#            export GOPATH=$HOME/gocode
-#      - run:
-#          name: Clone packetbeat project
-#          command: |
-#            mkdir -p $GOPATH/src/github.com/elastic
-#            cd $GOPATH/src/github.com/elastic
-#            git clone --branch $BEAT_VERSION https://github.com/elastic/beats
+          command: |
+            export CGO_ENABLED="1"
+            export GOPATH=$HOME/gocode
+            export PATH=/usr/local/go/bin:$PATH
+      - run:
+          name: Clone packetbeat project
+          command: |
+            mkdir -p $GOPATH/src/github.com/elastic
+            cd $GOPATH/src/github.com/elastic
+            git clone --branch $BEAT_VERSION https://github.com/elastic/beats
 #      - run:
 #          name: Replace BLuecat packetbeat.
 #          command: |
@@ -56,7 +58,7 @@ jobs:
       - run:
           name: Build packetbeat
           command: |
-            export GOPATH=$HOME/gocode
+            cd $GOPATH
             go version
             go get -v github.com/elastic/beats
 #            go build -v github.com/elastic/beats/packetbeat
