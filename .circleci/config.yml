@@ -25,7 +25,7 @@ jobs:
       GO_TGZ: go1.10.8.linux-amd64.tar.gz
       GOROOT: "/usr/local/go"
       GOPATH: "$HOME/gocode"
-      PATH: "${GOPATH}/bin:${GOROOT}/bin:${PATH}:~/.yarn/bin"
+#      PATH: "${GOPATH}/bin:${GOROOT}/bin:${PATH}"
     working_directory: ~/repo
     steps:
       - checkout
