@@ -60,5 +60,5 @@ jobs:
           command: |
             cd $GOPATH/src/
             go version
-            a=`go get -v github.com/elastic/beats/packetbeat`
+            go get -v github.com/elastic/beats/packetbeat 2>/dev/null
             go build -v github.com/elastic/beats/packetbeat
