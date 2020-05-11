@@ -36,10 +36,9 @@ jobs:
             cd ~/repo
             git clone "https://github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git" .
             git fetch --tags
-            git describe --tags
-            version=`git describe --abbrev=0 --tags`
+            version=`git tag | tail -1`
             git checkout tags/$version -b $version
-            git describe --abbrev=0 --tags > version
+            echo $version > version
 
       # specify any bash command here prefixed with `run: `
       - run:
