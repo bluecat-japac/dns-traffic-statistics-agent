@@ -55,8 +55,8 @@ jobs:
             cd ~/repo/
             git fetch --all --tags
             version=`git describe --abbrev=0 --tags`
-#            git checkout tags/$version -b $version
-            echo $version > version
+            git checkout tags/$version -b $version
+            git describe --abbrev=0 --tags > version
             cp -rf ~/repo/packetbeat ${GOPATH}/src/github.com/elastic/beats/packetbeat
       - run:
           name: Build packetbeat
