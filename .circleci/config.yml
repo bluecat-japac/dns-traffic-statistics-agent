@@ -29,16 +29,18 @@ jobs:
       - attach_workspace:
           at: ~/repo
 
-      - run:
-          name: Checkout
-          command: |
-            mkdir -p ~/repo
-            cd ~/repo
-            git clone "https://github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git" .
-            git fetch --tags
-            version=`git tag | tail -1`
-            git checkout tags/$version -b $version
-            echo $version > version
+      - checkout
+
+#      - run:
+#          name: Checkout
+#          command: |
+#            mkdir -p ~/repo
+#            cd ~/repo
+#            git clone "https://github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git" .
+#            git fetch --tags
+#            version=`git tag | tail -1`
+#            git checkout tags/$version -b $version
+#            echo $version > version
 
       # specify any bash command here prefixed with `run: `
       - run:
@@ -58,6 +60,10 @@ jobs:
             mkdir -p $GOPATH/src/github.com/elastic
             cd $GOPATH/src/github.com/elastic
             git clone --branch $BEAT_VERSION https://github.com/elastic/beats
+      - run:
+          name: Replace Bluecat Packetbeat
+          command: |
+            export GOPATH=~/gocode
             rm -rf ${GOPATH}/src/github.com/elastic/beats/packetbeat
             cp -rf ~/repo/packetbeat ${GOPATH}/src/github.com/elastic/beats/packetbeat
       - run:
@@ -94,7 +100,7 @@ jobs:
             echo $CIRCLE_PROJECT_USERNAME
             echo $CIRCLE_PROJECT_REPONAME
             echo ${VERSION}
-            $GOPATH/bin/ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ~/repo/artifacts/
+            $GOPATH/bin/ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ~/repo/artifacts/
 
 workflows:
   version: 2
