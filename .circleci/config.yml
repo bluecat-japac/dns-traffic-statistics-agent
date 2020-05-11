@@ -40,9 +40,6 @@ jobs:
             wget -q https://dl.google.com/go/$GO_TGZ
             sudo tar -vzxf $GO_TGZ -C /usr/local go
       - run:
-          name: Setup Go Environment Variables
-          command: export PATH=/usr/local/go/bin:$PATH
-      - run:
           name: Clone packetbeat project
           command: |
             export GOPATH=$HOME/gocode
@@ -58,6 +55,7 @@ jobs:
       - run:
           name: Build packetbeat
           command: |
+            export PATH=/usr/local/go/bin:$PATH
             export GOPATH=$HOME/gocode
             go version
             go env
