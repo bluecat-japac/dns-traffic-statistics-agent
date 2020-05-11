@@ -68,7 +68,7 @@ jobs:
           command: |
             mkdir -p $HOME/repo/artifacts/${CIRCLE_PROJECT_REPONAME}/{packetbeat,backup}
             cd $HOME/repo/artifacts/
-            cp $GOPATH/src/github.com/elastic/beats/packetbeat/packetbeat ./${CIRCLE_PROJECT_REPONAME}/packetbeat
+#            cp $GOPATH/src/github.com/elastic/beats/packetbeat/packetbeat ./${CIRCLE_PROJECT_REPONAME}/packetbeat
             cp -rf $HOME/repo/${CIRCLE_PROJECT_REPONAME}/dns-snmp-agent .${CIRCLE_PROJECT_REPONAME}/
             tar tar -czvf ${CIRCLE_PROJECT_REPONAME}.tar.gz ${CIRCLE_PROJECT_REPONAME}
             rm -rf ${CIRCLE_PROJECT_REPONAME}
