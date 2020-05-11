@@ -23,10 +23,11 @@ jobs:
     environment:
       BEAT_VERSION: v6.5.4
       GO_TGZ: go1.10.8.linux-amd64.tar.gz
+      GOPATH: $HOME/gocode
     working_directory: ~/repo
     steps:
-      - attach_workspace:
-          at: ~/repo
+#      - attach_workspace:
+#          at: ~/repo
       - checkout
       # specify any bash command here prefixed with `run: `
       - run:
@@ -62,32 +63,38 @@ jobs:
             cd $GOPATH/src/github.com/elastic/beats/packetbeat
             go get -t -d -v ./...
             go build
-            tar -czvf packetbeat.tar.gz packetbeat
-            mkdir -p $HOME/repo/artifacts
-            cp $GOPATH/src/github.com/elastic/beats/packetbeat/packetbeat.tar.gz $HOME/repo/artifacts
-      - persist_to_workspace:
-          root: ~/repo
-          paths: artifacts
-#      - run:
-#          name: Publish Release on GitHub
-#          command: |
-#            export GOPATH=$HOME/gocode
-#            go get -u github.com/tcnksm/ghr
-#            ls -la $GOPATH/bin
-#            echo $CIRCLE_PROJECT_USERNAME
-#            echo $CIRCLE_PROJECT_REPONAME
-#            $GOPATH/bin/ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete v2.1 $HOME/artifacts/
-  publish:
-    docker:
-      - image: cibuilds/github
-    working_directory: ~/repo
-    steps:
-      - attach_workspace:
-          at: ~/repo
+      - run:
+          name: Prepare to public
+          command: |
+            mkdir -p $HOME/repo/artifacts/${CIRCLE_PROJECT_REPONAME}/{packetbeat,backup}
+            cd $HOME/repo/artifacts/
+            cp $GOPATH/src/github.com/elastic/beats/packetbeat/packetbeat ./${CIRCLE_PROJECT_REPONAME}/packetbeat
+            cp -rf $HOME/repo/${CIRCLE_PROJECT_REPONAME}/dns-snmp-agent .${CIRCLE_PROJECT_REPONAME}/
+            tar tar -czvf ${CIRCLE_PROJECT_REPONAME}.tar.gz ${CIRCLE_PROJECT_REPONAME}
+            rm -rf ${CIRCLE_PROJECT_REPONAME}
+#      - persist_to_workspace:
+#          root: ~/repo
+#          paths: artifacts
       - run:
           name: Publish Release on GitHub
           command: |
-            ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete v2.1 ~/repo/artifacts/
+            export GOPATH=$HOME/gocode
+            go get -u github.com/tcnksm/ghr
+            ls -la $GOPATH/bin
+            echo $CIRCLE_PROJECT_USERNAME
+            echo $CIRCLE_PROJECT_REPONAME
+            $GOPATH/bin/ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete v2.1 $HOME/artifacts/
+#  publish:
+#    docker:
+#      - image: cibuilds/github
+#    working_directory: ~/repo
+#    steps:
+#      - attach_workspace:
+#          at: ~/repo
+#      - run:
+#          name: Publish Release on GitHub
+#          command: |
+#            ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete v2.1 ~/repo/artifacts/
 
 
 workflows:
@@ -98,9 +105,9 @@ workflows:
           filters:
             tags:
               only: /^v.*/
-      - publish:
-          requires:
-            - build
+#      - publish:
+#          requires:
+#            - build
 #          filters:
 #            tags:
 #              only: /^v.*/
