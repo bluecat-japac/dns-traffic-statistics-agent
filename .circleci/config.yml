@@ -29,6 +29,17 @@ jobs:
       - attach_workspace:
           at: ~/repo
 #      - checkout
+      - run:
+          name: Checkout ${CIRCLE_REPOSITORY_URL}
+          command: |
+            mkdir -p ~/repo
+            cd ~/repo
+            git clone "$CIRCLE_REPOSITORY_URL" .
+            git fetch --all --tags
+            version=`git describe --abbrev=0 --tags`
+            git checkout tags/$version -b $version
+            git describe --abbrev=0 --tags > version
+
       # specify any bash command here prefixed with `run: `
       - run:
           name: Update and install required libraries.
@@ -38,7 +49,6 @@ jobs:
       - run:
           name: Setup Golang environment
           command: |
-            mkdir -p ~/repo
             wget -q https://dl.google.com/go/$GO_TGZ
             sudo tar -vzxf $GO_TGZ -C /usr/local go
       - run:
@@ -48,17 +58,7 @@ jobs:
             mkdir -p $GOPATH/src/github.com/elastic
             cd $GOPATH/src/github.com/elastic
             git clone --branch $BEAT_VERSION https://github.com/elastic/beats
-      - run:
-          name: Replace Bluecat packetbeat.
-          command: |
-            export GOPATH=~/gocode
             rm -rf ${GOPATH}/src/github.com/elastic/beats/packetbeat
-            cd ~/repo
-            git clone "$CIRCLE_REPOSITORY_URL" .
-            git fetch --all --tags
-            version=`git describe --abbrev=0 --tags`
-            git checkout tags/$version -b $version
-            git describe --abbrev=0 --tags > version
             cp -rf ~/repo/packetbeat ${GOPATH}/src/github.com/elastic/beats/packetbeat
       - run:
           name: Build packetbeat
