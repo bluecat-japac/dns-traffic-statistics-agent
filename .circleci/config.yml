@@ -26,8 +26,8 @@ jobs:
       GOPATH: $HOME/gocode
     working_directory: ~/repo
     steps:
-#      - attach_workspace:
-#          at: ~/repo
+      - attach_workspace:
+          at: ~/repo
       - checkout
       # specify any bash command here prefixed with `run: `
       - run:
@@ -43,21 +43,18 @@ jobs:
       - run:
           name: Clone packetbeat project
           command: |
-            export GOPATH=$HOME/gocode
             mkdir -p $GOPATH/src/github.com/elastic
             cd $GOPATH/src/github.com/elastic
             git clone --branch $BEAT_VERSION https://github.com/elastic/beats
       - run:
           name: Replace BLuecat packetbeat.
           command: |
-            export GOPATH=$HOME/gocode
             rm -rf ${GOPATH}/src/github.com/elastic/beats/packetbeat
             cp -rf ~/repo/packetbeat ${GOPATH}/src/github.com/elastic/beats/packetbeat
       - run:
           name: Build packetbeat
           command: |
             export PATH=/usr/local/go/bin:$PATH
-            export GOPATH=$HOME/gocode
             go version
             go env
             cd $GOPATH/src/github.com/elastic/beats/packetbeat
@@ -66,12 +63,14 @@ jobs:
       - run:
           name: Prepare to public
           command: |
+            ls -la $HOME/repo
+            ls -la $GOPATH/src/github.com/elastic/beats/packetbeat
             mkdir -p $HOME/repo/artifacts/${CIRCLE_PROJECT_REPONAME}/{packetbeat,backup}
             cd $HOME/repo/artifacts/
+            cp $GOPATH/src/github.com/elastic/beats/packetbeat/packetbeat ./${CIRCLE_PROJECT_REPONAME}/packetbeat
             cp -rf $HOME/repo/${CIRCLE_PROJECT_REPONAME}/dns-snmp-agent .${CIRCLE_PROJECT_REPONAME}/
             tar tar -czvf ${CIRCLE_PROJECT_REPONAME}.tar.gz ${CIRCLE_PROJECT_REPONAME}
             rm -rf ${CIRCLE_PROJECT_REPONAME}
-#            cp $GOPATH/src/github.com/elastic/beats/packetbeat/packetbeat ./${CIRCLE_PROJECT_REPONAME}/packetbeat
 #      - persist_to_workspace:
 #          root: ~/repo
 #          paths: artifacts
