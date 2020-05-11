@@ -65,6 +65,9 @@ jobs:
             tar -czvf packetbeat.tar.gz packetbeat
             mkdir -p $HOME/repo/artifacts
             cp $GOPATH/src/github.com/elastic/beats/packetbeat/packetbeat.tar.gz $HOME/repo/artifacts
+      - persist_to_workspace:
+          root: ~/repo
+          paths: artifacts
 #      - run:
 #          name: Publish Release on GitHub
 #          command: |
