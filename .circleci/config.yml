@@ -35,7 +35,7 @@ jobs:
             mkdir -p ~/repo
             cd ~/repo
             git clone "https://github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git" .
-            git fetch --all --tags
+            git fetch --tags
             git describe --tags
             version=`git describe --abbrev=0 --tags`
             git checkout tags/$version -b $version
