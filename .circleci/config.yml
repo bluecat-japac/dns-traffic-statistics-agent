@@ -28,9 +28,9 @@ jobs:
     steps:
       - attach_workspace:
           at: ~/repo
-#      - checkout
+
       - run:
-          name: Checkout "${CIRCLE_PROJECT_REPONAME}"
+          name: Checkout
           command: |
             mkdir -p ~/repo
             cd ~/repo
@@ -82,10 +82,7 @@ jobs:
             cp -rf ~/repo/dns-snmp-agent/ ./${CIRCLE_PROJECT_REPONAME}/
             cp -rf ~/repo/dns_traffic_deploy.sh ./${CIRCLE_PROJECT_REPONAME}/
             tar -czvf ${CIRCLE_PROJECT_REPONAME}.tar.gz ${CIRCLE_PROJECT_REPONAME}
-#            rm -rf ${CIRCLE_PROJECT_REPONAME}
-#      - persist_to_workspace:
-#          root: ~/repo
-#          paths: artifacts
+
       - run:
           name: Publish Release on GitHub
           command: |
@@ -98,18 +95,6 @@ jobs:
             echo $CIRCLE_PROJECT_REPONAME
             echo ${VERSION}
             $GOPATH/bin/ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ~/repo/artifacts/
-#  publish:
-#    docker:
-#      - image: cibuilds/github
-#    working_directory: ~/repo
-#    steps:
-#      - attach_workspace:
-#          at: ~/repo
-#      - run:
-#          name: Publish Release on GitHub
-#          command: |
-#            ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete v2.1 ~/repo/artifacts/
-
 
 workflows:
   version: 2
