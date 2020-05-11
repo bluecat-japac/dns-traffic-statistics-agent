@@ -119,11 +119,5 @@ workflows:
           filters:
             tags:
               only: /^v.*/
-#      - publish:
-#          requires:
-#            - build
-#          filters:
-#            tags:
-#              only: /^v.*/
-#            branches:
-#              ignore: /.*/
+            branches:
+              ignore: /.*/
