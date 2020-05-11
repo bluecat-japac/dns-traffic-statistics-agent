@@ -29,6 +29,7 @@ jobs:
       - attach_workspace:
           at: ~/repo
       - checkout
+      - run: git fetch --all --tags
       # specify any bash command here prefixed with `run: `
       - run:
           name: Update and install required libraries.
@@ -53,7 +54,6 @@ jobs:
             export GOPATH=~/gocode
             rm -rf ${GOPATH}/src/github.com/elastic/beats/packetbeat
             cd ~/repo/
-            git fetch --all --tags
             version=`git describe --abbrev=0 --tags`
             git checkout tags/$version -b $version
             git describe --abbrev=0 --tags > version
