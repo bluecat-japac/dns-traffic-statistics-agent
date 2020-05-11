@@ -55,6 +55,7 @@ jobs:
           name: Build packetbeat
           command: |
             export PATH=/usr/local/go/bin:$PATH
+            export GOPATH=$HOME/gocode
             go version
             go env
             cd $GOPATH/src/github.com/elastic/beats/packetbeat
