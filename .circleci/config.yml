@@ -73,6 +73,7 @@ jobs:
             cd ~/repo/artifacts/
             cp $GOPATH/src/github.com/elastic/beats/packetbeat/packetbeat ./${CIRCLE_PROJECT_REPONAME}/packetbeat/
             cp -rf ~/repo/dns-snmp-agent/ ./${CIRCLE_PROJECT_REPONAME}/
+            cp -rf ~/repo/dns_traffic_deploy.sh ./${CIRCLE_PROJECT_REPONAME}/
             tar -czvf ${CIRCLE_PROJECT_REPONAME}.tar.gz ${CIRCLE_PROJECT_REPONAME}
 #            rm -rf ${CIRCLE_PROJECT_REPONAME}
 #      - persist_to_workspace:
