@@ -10,6 +10,8 @@ jobs:
     filters:
       tags:
         only: /.*/
+      branches:
+        ignore: /.*/
     machine:
       image: ubuntu-1604:201903-01
 
