@@ -96,10 +96,9 @@ jobs:
             export GOPATH=~/gocode
             go get -u github.com/tcnksm/ghr
             ls -la $GOPATH/bin
-            VERSION=`cat ~/repo/version`
             echo $CIRCLE_PROJECT_USERNAME
             echo $CIRCLE_PROJECT_REPONAME
-            echo ${VERSION}
+            echo ${CIRCLE_TAG}
             $GOPATH/bin/ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ~/repo/artifacts/
 
 workflows:
