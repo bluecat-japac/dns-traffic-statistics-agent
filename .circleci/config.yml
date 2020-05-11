@@ -1,82 +1,86 @@
 # Golang CircleCI 2.0 configuration file
 #
 # Check https://circleci.com/docs/2.0/language-go/ for more details
+version: 2
+jobs:
+  build:
+#    docker:
+#      # specify the version
+#      - image: cimg/base:stable
+    machine:
+      image: ubuntu-1604:201903-01
+
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/postgres:9.4
+
+    #### TEMPLATE_NOTE: go expects specific checkout path representing url
+    #### expecting it in the form of
+    ####   /go/src/github.com/circleci/go-tool
+    ####   /go/src/bitbucket.org/circleci/go-tool
+    #working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
+    environment:
+      BEAT_VERSION: v6.5.4
+      GO_TGZ: go1.10.8.linux-amd64.tar.gz
+    working_directory: ~/repo
+    steps:
+      - checkout
+
+      # specify any bash command here prefixed with `run: `
+      - run:
+          name: Update and install required libraries.
+          command: |
+            sudo apt-get update -q
+            sudo apt-get install -q -y gcc gcc-doc make make-doc gcc-multilib glibc-doc manpages-dev libpcap-dev
+      - run:
+          name: Setup Golang environment
+          command: |
+            wget -q https://dl.google.com/go/$GO_TGZ
+            sudo tar -vzxf $GO_TGZ -C /usr/local go
+      - run:
+          name: Setup Go Environment Variables
+          command: export PATH=/usr/local/go/bin:$PATH
+      - run:
+          name: Clone packetbeat project
+          command: |
+            export GOPATH=$HOME/gocode
+            mkdir -p $GOPATH/src/github.com/elastic
+            cd $GOPATH/src/github.com/elastic
+            git clone --branch $BEAT_VERSION https://github.com/elastic/beats
+      - run:
+          name: Replace BLuecat packetbeat.
+          command: |
+            export GOPATH=$HOME/gocode
+            rm -rf ${GOPATH}/src/github.com/elastic/beats/packetbeat
+            cp -rf ~/repo/packetbeat ${GOPATH}/src/github.com/elastic/beats/packetbeat
+      - run:
+          name: Build packetbeat
+          command: |
+            export GOPATH=$HOME/gocode
+            go version
+            go env
+            cd $GOPATH/src/github.com/elastic/beats/packetbeat
+            go get -t -d -v ./...
+            go build
+            tar -czvf packetbeat.tar.gz packetbeat
+            mkdir -p $HOME/artifacts
+            cp $GOPATH/src/github.com/elastic/beats/packetbeat/packetbeat.tar.gz $HOME/artifacts
+      - run:
+          name: Publish Release on GitHub
+          command: |
+            export GOPATH=$HOME/gocode
+            go get -u github.com/tcnksm/ghr
+            ls -la $GOPATH/bin
+            echo $CIRCLE_PROJECT_USERNAME
+            echo $CIRCLE_PROJECT_REPONAME
+            $GOPATH/bin/ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete v2.1 $HOME/artifacts/
+
 workflows:
   version: 2
-  tagged-build:
+  build-and-deploy:
     jobs:
-      build:
-    #    docker:
-    #      # specify the version
-    #      - image: cimg/base:stable
-        filters:
-          tags:
-            only: /^v.*/
-        machine:
-          image: ubuntu-1604:201903-01
-
-          # Specify service dependencies here if necessary
-          # CircleCI maintains a library of pre-built images
-          # documented at https://circleci.com/docs/2.0/circleci-images/
-          # - image: circleci/postgres:9.4
-
-        #### TEMPLATE_NOTE: go expects specific checkout path representing url
-        #### expecting it in the form of
-        ####   /go/src/github.com/circleci/go-tool
-        ####   /go/src/bitbucket.org/circleci/go-tool
-        #working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
-        environment:
-          BEAT_VERSION: v6.5.4
-          GO_TGZ: go1.10.8.linux-amd64.tar.gz
-        working_directory: ~/repo
-        steps:
-          - checkout
-
-          # specify any bash command here prefixed with `run: `
-          - run:
-              name: Update and install required libraries.
-              command: |
-                sudo apt-get update -q
-                sudo apt-get install -q -y gcc gcc-doc make make-doc gcc-multilib glibc-doc manpages-dev libpcap-dev
-          - run:
-              name: Setup Golang environment
-              command: |
-                wget -q https://dl.google.com/go/$GO_TGZ
-                sudo tar -vzxf $GO_TGZ -C /usr/local go
-          - run:
-              name: Setup Go Environment Variables
-              command: export PATH=/usr/local/go/bin:$PATH
-          - run:
-              name: Clone packetbeat project
-              command: |
-                export GOPATH=$HOME/gocode
-                mkdir -p $GOPATH/src/github.com/elastic
-                cd $GOPATH/src/github.com/elastic
-                git clone --branch $BEAT_VERSION https://github.com/elastic/beats
-          - run:
-              name: Replace BLuecat packetbeat.
-              command: |
-                export GOPATH=$HOME/gocode
-                rm -rf ${GOPATH}/src/github.com/elastic/beats/packetbeat
-                cp -rf ~/repo/packetbeat ${GOPATH}/src/github.com/elastic/beats/packetbeat
-          - run:
-              name: Build packetbeat
-              command: |
-                export GOPATH=$HOME/gocode
-                go version
-                go env
-                cd $GOPATH/src/github.com/elastic/beats/packetbeat
-                go get -t -d -v ./...
-                go build
-                tar -czvf packetbeat.tar.gz packetbeat
-                mkdir -p $HOME/artifacts
-                cp $GOPATH/src/github.com/elastic/beats/packetbeat/packetbeat.tar.gz $HOME/artifacts
-          - run:
-              name: Publish Release on GitHub
-              command: |
-                export GOPATH=$HOME/gocode
-                go get -u github.com/tcnksm/ghr
-                ls -la $GOPATH/bin
-                echo $CIRCLE_PROJECT_USERNAME
-                echo $CIRCLE_PROJECT_REPONAME
-                $GOPATH/bin/ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete v2.1 $HOME/artifacts/
+      - build:
+          filters:
+            tags:
+              only: /.*/
