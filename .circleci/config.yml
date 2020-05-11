@@ -3,12 +3,12 @@
 # Check https://circleci.com/docs/2.0/language-go/ for more details
 version: 2
 jobs:
-  build-project:
-#    docker:
-#      # specify the version
-#      - image: cimg/base:stable
-    machine:
-      image: ubuntu-1604:201903-01
+  build:
+    docker:
+      # specify the version
+      - image: cimg/base:stable
+#    machine:
+#      image: ubuntu-1604:201903-01
 
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
@@ -26,7 +26,10 @@ jobs:
     working_directory: ~/repo
     steps:
       - checkout
-
+      - persist_to_workspace:
+          root: /tmp/artifacts
+          paths:
+            - data
       # specify any bash command here prefixed with `run: `
       - run:
           name: Update and install required libraries.
@@ -64,24 +67,42 @@ jobs:
             go get -t -d -v ./...
             go build
             tar -czvf packetbeat.tar.gz packetbeat
-            mkdir -p $HOME/artifacts
-            cp $GOPATH/src/github.com/elastic/beats/packetbeat/packetbeat.tar.gz $HOME/artifacts
+            cp $GOPATH/src/github.com/elastic/beats/packetbeat/packetbeat.tar.gz /tmp/artifacts/data/
+#            mkdir -p $HOME/repo/artifacts
+#            cp $GOPATH/src/github.com/elastic/beats/packetbeat/packetbeat.tar.gz $HOME/repo/artifacts
+#      - run:
+#          name: Publish Release on GitHub
+#          command: |
+#            export GOPATH=$HOME/gocode
+#            go get -u github.com/tcnksm/ghr
+#            ls -la $GOPATH/bin
+#            echo $CIRCLE_PROJECT_USERNAME
+#            echo $CIRCLE_PROJECT_REPONAME
+#            $GOPATH/bin/ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete v2.1 $HOME/artifacts/
+  publish:
+    docker:
+      - image: cibuilds/github
+    steps:
+      - attach_workspace:
+          at: /tmp/artifacts/data/
       - run:
           name: Publish Release on GitHub
           command: |
-            export GOPATH=$HOME/gocode
-            go get -u github.com/tcnksm/ghr
-            ls -la $GOPATH/bin
-            echo $CIRCLE_PROJECT_USERNAME
-            echo $CIRCLE_PROJECT_REPONAME
-            $GOPATH/bin/ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete v2.1 $HOME/artifacts/
+            ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete v2.1 /tmp/artifacts/data
+
 
 workflows:
   version: 2
   build-and-deploy:
     jobs:
-      - build-project:
+      - build:
           filters:
+            tags:
+              only: /^v.*/
+      - publish:
+          requires:
+            - build
+         filters:
             tags:
               only: /^v.*/
             branches:
