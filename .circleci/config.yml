@@ -28,18 +28,19 @@ jobs:
     steps:
       - attach_workspace:
           at: ~/repo
-#      - checkout
-      - run:
-          name: Checkout "${CIRCLE_PROJECT_REPONAME}"
-          command: |
-            mkdir -p ~/repo
-            cd ~/repo
-            git clone "https://github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git" .
-            git fetch --tags
-            git describe --tags
-            version=`git describe --abbrev=0 --tags`
-            git checkout tags/$version -b $version
-            git describe --abbrev=0 --tags > version
+
+      - checkout
+
+#      - run:
+#          name: Checkout
+#          command: |
+#            mkdir -p ~/repo
+#            cd ~/repo
+#            git clone "https://github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git" .
+#            git fetch --tags
+#            version=`git tag | tail -1`
+#            git checkout tags/$version -b $version
+#            echo $version > version
 
       # specify any bash command here prefixed with `run: `
       - run:
@@ -59,6 +60,10 @@ jobs:
             mkdir -p $GOPATH/src/github.com/elastic
             cd $GOPATH/src/github.com/elastic
             git clone --branch $BEAT_VERSION https://github.com/elastic/beats
+      - run:
+          name: Replace Bluecat Packetbeat
+          command: |
+            export GOPATH=~/gocode
             rm -rf ${GOPATH}/src/github.com/elastic/beats/packetbeat
             cp -rf ~/repo/packetbeat ${GOPATH}/src/github.com/elastic/beats/packetbeat
       - run:
@@ -83,10 +88,7 @@ jobs:
             cp -rf ~/repo/dns-snmp-agent/ ./${CIRCLE_PROJECT_REPONAME}/
             cp -rf ~/repo/dns_traffic_deploy.sh ./${CIRCLE_PROJECT_REPONAME}/
             tar -czvf ${CIRCLE_PROJECT_REPONAME}.tar.gz ${CIRCLE_PROJECT_REPONAME}
-#            rm -rf ${CIRCLE_PROJECT_REPONAME}
-#      - persist_to_workspace:
-#          root: ~/repo
-#          paths: artifacts
+
       - run:
           name: Publish Release on GitHub
           command: |
@@ -94,23 +96,10 @@ jobs:
             export GOPATH=~/gocode
             go get -u github.com/tcnksm/ghr
             ls -la $GOPATH/bin
-            VERSION=`cat ~/repo/version`
             echo $CIRCLE_PROJECT_USERNAME
             echo $CIRCLE_PROJECT_REPONAME
-            echo ${VERSION}
-            $GOPATH/bin/ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ~/repo/artifacts/
-#  publish:
-#    docker:
-#      - image: cibuilds/github
-#    working_directory: ~/repo
-#    steps:
-#      - attach_workspace:
-#          at: ~/repo
-#      - run:
-#          name: Publish Release on GitHub
-#          command: |
-#            ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete v2.1 ~/repo/artifacts/
-
+            echo ${CIRCLE_TAG}
+            $GOPATH/bin/ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ~/repo/artifacts/
 
 workflows:
   version: 2
@@ -120,11 +109,5 @@ workflows:
           filters:
             tags:
               only: /^v.*/
-#      - publish:
-#          requires:
-#            - build
-#          filters:
-#            tags:
-#              only: /^v.*/
-#            branches:
-#              ignore: /.*/
+            branches:
+              ignore: /.*/
