@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/signal"
 	"runtime"
 	"syscall"
 	"time"
@@ -181,6 +180,8 @@ func (s *Sniffer) Run() error {
 	debugf("Number Decoder: %d", s.config.DecoderNum)
 	//decoderWorkers := make([]Worker, s.config.DecoderNum)
 	jobChan := make(chan *model.PacketWrapper, 10000)
+	defer close(jobChan)
+
 	// for i := 0; i < 1; i++ {
 	// 	debugf("Worker Factory")
 	// 	worker, err := s.factory(handle.LinkType())
@@ -234,16 +235,9 @@ func (s *Sniffer) Run() error {
 		}
 
 		counter++
-		/////Bluecat Disable Old Statistic
-		//stats.IncrSniffTotalCaptured()
-		//logp.Debug("sniffer", "Packet numberr: %d", counter)
-		//debugf("Packet numberrr: %d", counter)
-		//debugf("Data %v", data)
 		if s.dropSniffedPacket {
 			// Do nothing, just drop the sniffed messages
 			// Use this for testing/benchmarking only
-			/////Bluecat Disable Old Statistic
-			//stats.IncrSniffDropped()
 			continue
 		}
 
@@ -253,31 +247,6 @@ func (s *Sniffer) Run() error {
 		}
 		// worker.OnPacket(data, &ci)
 	}
-
-	// now := time.Now()
-	// pkt := &model.PacketWrapper{
-	// 	Data: []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 69, 0, 0, 83, 81, 156, 64, 0, 64, 17, 234, 199, 127, 0, 0, 53, 127, 0, 0, 1, 0, 53, 145, 134, 0, 63, 254, 134, 76, 134, 129, 128, 0, 1, 0, 1, 0, 0, 0, 1, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0, 0, 1, 0, 1, 192, 12, 0, 1, 0, 1, 0, 0, 0, 69, 0, 4, 172, 217, 31, 78, 0, 0, 41, 255, 214, 0, 0, 0, 0, 0, 0},
-	// 	CaptureInfo: &gopacket.CaptureInfo{
-	// 		Timestamp:     now,
-	// 		CaptureLength: 97,
-	// 		Length:        97,
-	// 	},
-	// }
-	//
-	// for i := 0; i < 10000000; i++ {
-	// 	jobChan <- pkt
-	// 	stats.IncrSniffTotalCaptured()
-	// 	counter++
-	// }
-
-	// worker.OnPacket(pkt.Data, pkt.CaptureInfo)
-	// counter++
-
-	close(jobChan)
-
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, os.Kill)
-	<-c
 
 	return nil
 }

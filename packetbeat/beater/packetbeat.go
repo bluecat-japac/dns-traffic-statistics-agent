@@ -198,7 +198,7 @@ func (pb *packetbeat) setupFlows() error {
 
 func (pb *packetbeat) Run(b *beat.Beat) error {
 	// Show version
-	version := "v2.5"
+	version := "v2.6"
 	logp.Info("Start Packetbeat version: %v", version)
 	//[Bluecat] Start DNS Statistic Module
 	statsdns.InitStatisticsDNS()
@@ -239,6 +239,7 @@ func (pb *packetbeat) Run(b *beat.Beat) error {
 
 	logp.Debug("main", "Waiting for the sniffer to finish")
 	wg.Wait()
+
 	select {
 	default:
 	case err := <-errC:
@@ -252,6 +253,7 @@ func (pb *packetbeat) Run(b *beat.Beat) error {
 func (pb *packetbeat) Stop() {
 	logp.Info("Packetbeat send stop signal")
 	pb.sniff.Stop()
+	statsdns.Stop()
 }
 
 func (pb *packetbeat) createWorker(dl layers.LinkType) (sniffer.Worker, error) {
