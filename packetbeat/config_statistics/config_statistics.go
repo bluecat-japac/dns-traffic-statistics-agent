@@ -116,7 +116,7 @@ func ReadACLInNamedConfig() ([]*net.IPNet, []*net.IPNet, []string, []string, map
 						RegPureIpv4Range.MatchString(trimedValue) ||
 						RegPureIpv6.MatchString(trimedValue) ||
 						RegPureIpv6Range.MatchString(trimedValue) {
-						IndexLastViewMap[lastView] = append(IndexLastViewMap[lastView], trimedValue)
+						IndexLastViewMap[lastView] = append(IndexLastViewMap[lastView], strings.ToLower(trimedValue))
 					}
 				}
 				MapViewIPs[viewIndex] = IndexLastViewMap
@@ -182,7 +182,8 @@ func getIPsInLine(line string) (IPRangesInACL []*net.IPNet, IPsInACL []string) {
 		IPsInACL = append(IPsInACL, strings.Replace(s, ";", "", -1))
 	}
 	for _, s := range arrayStrIpV6 {
-		IPsInACL = append(IPsInACL, strings.Replace(s, ";", "", -1))
+		// Append IPv6 Lowcase
+		IPsInACL = append(IPsInACL, strings.ToLower(strings.Replace(s, ";", "", -1)))
 	}
 	return
 }

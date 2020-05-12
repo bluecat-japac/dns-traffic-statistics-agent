@@ -26,7 +26,7 @@ import (
 )
 
 var (
-	client    = &http.Client{}
+	client    = &http.Client{Timeout: 5 * time.Second}
 	cacheData = make([]string, 0)
 	mutex     = &sync.RWMutex{}
 )
@@ -35,14 +35,16 @@ func init() {
 	go func() {
 		logp.Info("Interval Clear Out Statis Cache %v", config_statistics.ConfigStat.IntervalClearOutStatisCache)
 		//Prevent Statistic config file hasn't already loaded
-		for config_statistics.ConfigStat.IntervalClearOutStatisCache == 0 {
+		if config_statistics.ConfigStat.IntervalClearOutStatisCache == 0 {
 			logp.Info("Interval Clear Out Statis Cache %v", config_statistics.ConfigStat.IntervalClearOutStatisCache)
+			return
 		}
 		ticker := time.NewTicker(time.Duration(config_statistics.ConfigStat.IntervalClearOutStatisCache) * time.Second)
+		defer ticker.Stop()
 		for {
 			t := <-ticker.C
 			mutex.Lock()
-			logp.Info("Clear first element in cache Data %s", t)
+			logp.Info("Check outstats cached data %s",t)
 			popElementInCache()
 			logp.Debug("outstats", "CACHED DATA %v", cacheData)
 			mutex.Unlock()
@@ -52,6 +54,7 @@ func init() {
 
 func popElementInCache() {
 	if len(cacheData) > 0 {
+		logp.Info("Clear first element in cache Data")
 		cacheData = append(cacheData[:0], cacheData[1:]...)
 	}
 }
@@ -76,17 +79,16 @@ func printHttpBodyResult(resp *http.Response) {
 }
 
 func resendData() {
-	go func() {
-		for len(cacheData) > 0 {
-			resp, err := sendData(cacheData[0])
-			if err != nil {
-				break
-			}
-			popElementInCache()
-			logp.Info("Out Statistics From Cached")
-			printHttpBodyResult(resp)
+	for len(cacheData) > 0 {
+		resp, err := sendData(cacheData[0])
+		if err != nil {
+			break
 		}
-	}()
+		defer resp.Body.Close()
+		popElementInCache()
+		logp.Info("Out Statistics From Cached")
+		printHttpBodyResult(resp)
+	}
 }
 
 func PublishToSNMPAgent(data string) {
@@ -96,10 +98,8 @@ func PublishToSNMPAgent(data string) {
 		logp.Debug("outstats", "CACHED DATA %v", cacheData)
 		logp.Error(err)
 		return
-	} else {
-		printHttpBodyResult(resp)
-		resendData()
 	}
-
 	defer resp.Body.Close()
+	printHttpBodyResult(resp)
+	resendData()
 }

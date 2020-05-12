@@ -54,7 +54,7 @@ class AclTrafficStatisticsAgent():
                 elif "/" in addr_acl:
                     list_ip_range.append(addr_acl)
                 else:
-                    list_ip.append(addr_acl)
+                    list_ip.append(addr_acl.lower())
         return list_ip, list_ip_range
 
     def is_ip_available_acl(self, ip):
