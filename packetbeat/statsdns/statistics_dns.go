@@ -101,62 +101,80 @@ var (
 	IpsServer                    []string
 	UrlAnnouncementDeployFromBam string
 	MapViewIPs                   map[int]map[string][]string
+	QStatDNS                     *QueueStatDNS
+	IsActive                     bool
 )
 
 func InitStatisticsDNS() {
 	GetConfigDNSStatistics()
+	// Create chan for management Statistic DNS counter
+	QStatDNS = NewQueueStatDNS()
+	QStatDNS.isPopWait = true
+	IsActive = true
+
 	go func() {
 		ticker := time.NewTicker(StatInterval * time.Second)
 		defer ticker.Stop()
-		StatSrv = &StatisticsService{Start: time.Now(), StatsMap: make(map[string]*StatisticsDNS, MaximumClients)}
-		ReqMap = &RequestMap{RequestMessage: make(map[string]map[string]string, MaximumClients)}
-		//===================Create Counter For PerView============================
-		//go func() {
-		//	CreateCounterMetricPerView(MapViewIPs)
-		//}()
-		//===================End Create Counter For PerView========================
-		for {
-			//===================Create Counter For PerView==========================
-			go func() {
-				CreateCounterMetricPerView(MapViewIPs)
-			}()
-			//===================End Create Counter For PerView======================
-			t := <-ticker.C
+		go func() {
+			QStatDNS.isActive = IsActive
+			QStatDNS.PopStatDNS()
+		}()
+
+		for IsActive {
+			StatSrv = &StatisticsService{StatsMap: make(map[string]*StatisticsDNS, MaximumClients)}
+			ReqMap = &RequestMap{RequestMessage: make(map[string]map[string]string, MaximumClients)}
+			ReqMap.RequestMessage[RQ_C_MAP] = make(map[string]string)
+			ReqMap.RequestMessage[RQ_S_MAP] = make(map[string]string)
+
+			CreateCounterMetricPerView(MapViewIPs)
+
+			// Active flag sub for counter
+			QStatDNS.isPopWait = false
+
+			timeEnd := <-ticker.C
 			mutex.Lock()
-			logp.Info("Starting %s", t)
-			StatSrv.End = t
+			QStatDNS.isPopWait = true
+			StatSrv.Start = timeEnd.Add((-StatInterval) * time.Second)
+			StatSrv.End = timeEnd
 			b, err := json.Marshal(StatSrv)
 			if err != nil {
 				logp.Error(err)
 				continue
 			}
+
 			logp.Info("DNS_Statistics: %s", b)
 			// open new thread to call the API
 			go func() {
 				outstats.PublishToSNMPAgent(string(b))
 			}()
-			StatSrv = &StatisticsService{Start: t, StatsMap: make(map[string]*StatisticsDNS, MaximumClients)}
-			ReqMap = &RequestMap{RequestMessage: make(map[string]map[string]string, MaximumClients)}
 			mutex.Unlock()
 		}
 	}()
 }
 
-func IsValidInACL(statIP string, metricType string) bool{
-	switch metricType {
-	case CLIENT:
-		if !utils.CheckIPInRanges(statIP, IpNetsClient, IpsClient) {
-			return false
-		}
-	case AUTHSERVER:
-		if !utils.CheckIPInRanges(statIP, IpNetsServer, IpsServer) {
-			return false
-		}
-	}
-	return true
+func Stop() {
+	IsActive = false
+	QStatDNS.Stop()
 }
 
-//Create statistics for perClient, perServer and perView. Note metricType="perView" => (key of map statistic clientIP = key viewName)
+func IsValidInACL(statIP string, metricType string) bool {
+	switch metricType {
+	case CLIENT:
+		if utils.CheckIPInRanges(statIP, IpNetsClient, IpsClient) {
+			return true
+		}
+	case AUTHSERVER:
+		if utils.CheckIPInRanges(statIP, IpNetsServer, IpsServer) {
+			return true
+		}
+	case VIEW:
+		return true
+	}
+	return false
+}
+
+// Create statistics for perClient, perServer and perView.
+// Note metricType="perView" => (key of map statistic clientIP = key viewName)
 func newStats(clientIp string, metricType string) bool {
 	// Don't want to be calculating the internal messages or ip that doesn't in range in config statistics_config.json
 	if !IsValidInACL(clientIp, metricType) {
@@ -198,6 +216,18 @@ func ReceivedMessage(msg *model.Record) {
 	if !newStats(clientIP, metricType) {
 		return
 	}
+
+	defer func() {
+		if err := recover(); err != nil {
+			QStatDNS.PushRecordDNS(msg)
+			logp.Debug("statsdns.ReceivedMessage"," %s", err)
+			return
+		}
+	}()
+
+	// Increase TotalResponse
+	IncrDNSStatsTotalResponses(clientIP)
+	ResponseForPerView(clientIP)
 
 	if responseCode == NOERROR {
 		if answersCount > 0 {
@@ -243,7 +273,6 @@ func ReceivedMessage(msg *model.Record) {
 		// We already handled when parsing the packets
 		IncrDNSStatsFormatError(clientIP)
 		IncrDNSStatsFormatErrorForPerView(clientIP, metricType)
-
 	} else {
 		IncrDNSStatsOtherRCode(clientIP)
 		IncrDNSStatsOtherRCodeForPerView(clientIP, metricType)
@@ -253,24 +282,34 @@ func ReceivedMessage(msg *model.Record) {
 	CalculateAverageTimePerView(clientIP, responseTime, metricType)
 }
 
-func CheckMetricType(srcIp string, dstIp string) (statIP string, metricType string){
+func CheckMetricType(srcIp string, dstIp string, mode string) (statIP string, metricType string) {
 	if utils.IsLocalIP(dstIp) {
 		statIP = srcIp
-		metricType = CLIENT
+		switch mode {
+		case QUERY:
+			metricType = CLIENT
+		case RESPONSE:
+			metricType = AUTHSERVER
+		}
 	} else {
 		statIP = dstIp
-		metricType = AUTHSERVER
+		switch mode {
+		case QUERY:
+			metricType = AUTHSERVER
+		case RESPONSE:
+			metricType = CLIENT
+		}
 	}
 	return
 }
 
 //Create metric for the Client/AS/Forwarder
-func CreateCounterMetric(srcIp string, dstIp string) {
-	// if utils.IsInternalCall(srcIp, dstIp) {
-	// 	return
-	// }
-	statIP, metricType := CheckMetricType(srcIp, dstIp)
-	newStats(statIP, metricType)
+func CreateCounterMetric(srcIp string, dstIp string, mode string) (statIP string) {
+	statIP, metricType := CheckMetricType(srcIp, dstIp, mode)
+	if !newStats(statIP, metricType) {
+		statIP = ""
+	}
+	return
 }
 
 //Create metric for perView
@@ -287,32 +326,17 @@ func CreateCounterMetricPerView(mapViewIPs map[int]map[string][]string) {
 }
 
 func Queries(srcIp string, dstIp string) {
-	if !utils.IsLocalIP(srcIp) {
-		if _, exist := StatSrv.StatsMap[srcIp]; exist {
-			IncrDNSStatsTotalQueries(srcIp)
-		} else {
-			go func() {
-				time.Sleep(time.Second)
-				status := newStats(srcIp, CLIENT)
-				if status == false {
-					return
-				}
-				IncrDNSStatsTotalQueries(srcIp)
-			}()
+	defer func() {
+		if err := recover(); err != nil {
+			// Default isDuplicated false in here
+			queryDNS := NewQueryDNS(srcIp, dstIp, false)
+			QStatDNS.PushQueryDNS(queryDNS)
+			logp.Debug("statsdns.Queries"," %s", err)
+			return
 		}
-	} else {
-		if _, exist := StatSrv.StatsMap[dstIp]; exist {
-			IncrDNSStatsTotalQueries(dstIp)
-		} else {
-			go func(){
-				time.Sleep(time.Second)
-				status := newStats(dstIp, AUTHSERVER)
-				if status == false{
-					return
-				}
-				IncrDNSStatsTotalQueries(dstIp)
-			}()
-		}
+	}()
+	if statIP := CreateCounterMetric(srcIp, dstIp, QUERY); statIP != "" {
+		IncrDNSStatsTotalQueries(statIP)
 	}
 }
 
@@ -325,32 +349,8 @@ func QueriesForPerView(srcIp string) {
 }
 
 func Response(srcIp string, dstIp string) {
-	if !utils.IsLocalIP(dstIp) {
-		if _, exist := StatSrv.StatsMap[dstIp]; exist {
-			IncrDNSStatsTotalResponses(dstIp)
-		} else {
-			go func(){
-				time.Sleep(time.Second)
-				status := newStats(dstIp, CLIENT)
-				if status == false{
-					return
-				}
-				IncrDNSStatsTotalResponses(dstIp)
-			}()
-		}
-	} else {
-		if _, exist := StatSrv.StatsMap[srcIp]; exist {
-			IncrDNSStatsTotalResponses(srcIp)
-		} else {
-			go func() {
-				time.Sleep(time.Second)
-				status := newStats(srcIp, AUTHSERVER)
-				if status == false {
-					return
-				}
-				IncrDNSStatsTotalResponses(srcIp)
-			}()
-		}
+	if statIP := CreateCounterMetric(srcIp, dstIp, RESPONSE); statIP != "" {
+		IncrDNSStatsTotalResponses(statIP)
 	}
 }
 
@@ -366,6 +366,8 @@ func IncreaseQueryCounter(srcIp string, dstIp string, mode string) {
 	// if utils.IsInternalCall(srcIp, dstIp) {
 	// 	return
 	// }
+	mutex.Lock()
+	defer mutex.Unlock()
 	switch mode {
 	case QUERY:
 		Queries(srcIp, dstIp)
@@ -411,7 +413,7 @@ func IncrDNSStatsRecursive(clientIp string) {
 	atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.Recursive, 1)
 }
 
-func IncrDNSStatsRecursiveForPerClient(clientIp string) {
+func IncrDNSStatsRecursiveForPerView(clientIp string) {
 	if viewName := FindClientInView(clientIp); viewName != "" {
 		atomic.AddInt64(&StatSrv.StatsMap[viewName].DNSMetrics.Recursive, 1)
 	}
@@ -454,6 +456,9 @@ func IncrDNSStatsSuccessfulNoAuthAnsForPerView(clientIp string) {
 }
 
 func IncrDNSStatsSuccessfulRecursive(clientIp string) {
+	if !newStats(clientIp, CLIENT) {
+		return
+	}
 	atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.SuccessfulRecursive, 1)
 }
 
@@ -593,19 +598,10 @@ func FindClientInView(clientIP string) string {
 			for _, matchIP := range MapViewIPs[i][viewName] {
 				//Ingore case
 				if strings.Contains(matchIP, "!") {
-					//Ignore Case Ignore for IPv4 Range
-					if ipv4RangeString := config_statistics.RegPureIpv4Range.FindString(matchIP); ipv4RangeString != "" {
-						//Normal Ipv4 Range Case
-						if utils.CheckIpRangeFromString(clientIP, ipv4RangeString) {
-							result = ""
-							foundView = true
-							break
-						}
-					}
-					//Ignore Case for IPv6 Range
-					if ipv6RangeString := config_statistics.RegPureIpv4Range.FindString(matchIP); ipv6RangeString != "" {
-						//Normal Ipv6 Range Case
-						if utils.CheckIpRangeFromString(clientIP, ipv6RangeString) {
+					// Case for Ignore IP range
+					// If / character in matchIP
+					if strings.Contains(matchIP, "/") {
+						if utils.CheckIpRangeFromString(clientIP, matchIP) {
 							result = ""
 							foundView = true
 							break
@@ -618,20 +614,9 @@ func FindClientInView(clientIP string) string {
 						break
 					}
 				} else {
-					//Allow case
-					//Allow Case for IPv4 Range
-					if ipv4RangeString := config_statistics.RegPureIpv4Range.FindString(matchIP); ipv4RangeString != "" {
-						//Normal Ipv4 Range Case
-						if utils.CheckIpRangeFromString(clientIP, ipv4RangeString) {
-							result = viewName
-							foundView = true
-							break
-						}
-					}
-					//Allow Case for IPv6 Range
-					if ipv6RangeString := config_statistics.RegPureIpv4Range.FindString(matchIP); ipv6RangeString != "" {
-						//Normal Ipv6 Range Case
-						if utils.CheckIpRangeFromString(clientIP, ipv6RangeString) {
+					//Allow case range IP
+					if strings.Contains(matchIP, "/") {
+						if utils.CheckIpRangeFromString(clientIP, matchIP) {
 							result = viewName
 							foundView = true
 							break
@@ -692,8 +677,8 @@ func ReceiveHttpRequest(payloadString string) {
 
 // Store all request messages into the corresponding map for Incoming messages and Outgoing messages
 func AddRequestMsgMap(clientIP, srvIP string, reqID uint16, questions []mkdns.Question) {
-	mutex.Lock()
-	defer mutex.Unlock()
+	// mutex.Lock()
+	// defer mutex.Unlock()
 	if len(questions) > 0 && !utils.IsInternalCall(clientIP, srvIP) {
 		for _, question := range questions {
 			var rqItem string
@@ -707,14 +692,13 @@ func AddRequestMsgMap(clientIP, srvIP string, reqID uint16, questions []mkdns.Qu
 				// Outgoing map use the same key and value
 				rqItem = rqKey
 			}
-			if _, exist := ReqMap.RequestMessage[metricType]; !exist {
-				ReqMap.RequestMessage[metricType] = make(map[string]string)
-			}
+			mutex.Lock()
 			// Make sure only the first received query will be added into the map
 			// The first received client's request will be counted as recursion in case recursion happened
 			if _, exist := ReqMap.RequestMessage[metricType][rqKey]; !exist {
 				ReqMap.RequestMessage[metricType][rqKey] = rqItem
 			}
+			mutex.Unlock()
 		}
 	}
 }
@@ -723,10 +707,9 @@ func AddRequestMsgMap(clientIP, srvIP string, reqID uint16, questions []mkdns.Qu
 // Then find client question from the Incoming messages
 // All found the client question, increase the recursive value for the client stat, then remove out the request from the maps
 func CalculateRecursiveMsg(clientIP, srvIP string, reqID uint16, questions []mkdns.Question, dnsMsg *mkdns.Msg) {
-	mutex.Lock()
-	defer mutex.Unlock()
+	// mutex.Lock()
+	// defer mutex.Unlock()
 	if len(questions) > 0 && !utils.IsInternalCall(clientIP, srvIP) {
-
 		for _, question := range questions {
 			rqKey := genKeyItem(question)
 			if !existQuery(rqKey, rqKey, RQ_S_MAP) {
@@ -736,15 +719,17 @@ func CalculateRecursiveMsg(clientIP, srvIP string, reqID uint16, questions []mkd
 			if !existQuery(rqKey, rqItem, RQ_C_MAP) || utils.IsLocalIP(clientIP) {
 				continue
 			}
+			isSuccess := false
 			//If Successful Recursion
 			if dnsMsg.MsgHdr.Rcode == 0 && len(dnsMsg.Answer) > 0 {
-				IncrDNSStatsSuccessfulRecursive(clientIP)
-				IncrDNSStatsSuccessfulRecursiveForPerView(clientIP)
+				isSuccess = true
 			}
-			IncrDNSStatsRecursive(clientIP)
-			IncrDNSStatsRecursiveForPerClient(clientIP)
+			recursiveDNS := NewRecursiveDNS(clientIP, isSuccess)
+			QStatDNS.PushRecursiveDNS(recursiveDNS)
+			mutex.Lock()
 			delete(ReqMap.RequestMessage[RQ_S_MAP], rqKey)
 			delete(ReqMap.RequestMessage[RQ_C_MAP], rqKey)
+			mutex.Unlock()
 		}
 	}
 }
@@ -767,36 +752,36 @@ func existQuery(rqKey, rqItem, metricType string) bool {
 
 func HandleRequestDecodeErr(clientIP, srvIP string) {
 	if !utils.IsInternalCall(clientIP, srvIP) {
-		if !utils.IsLocalIP(clientIP) {
-			IncrDNSStatsTotalQueries(clientIP)
-			IncrDNSStatsTotalQueriesForPerView(clientIP)
+		if statIP := CreateCounterMetric(srvIP, clientIP, QUERY); statIP != "" {
+			IncrDNSStatsTotalQueries(statIP)
+			IncrDNSStatsTotalQueriesForPerView(statIP)
 		}
 	}
 }
 
 func HandleResponseDecodeErr(clientIP, srvIP string, RCodeString string) {
 	if !utils.IsInternalCall(clientIP, srvIP) {
-		if !utils.IsLocalIP(clientIP) {
+		if statIP := CreateCounterMetric(srvIP, clientIP, RESPONSE); statIP != "" {
+			IncrDNSStatsTotalResponses(statIP)
+			ResponseForPerView(statIP)
 			if RCodeString == FORMERR {
-				IncrDNSStatsFormatError(clientIP)
-				IncrDNSStatsFormatErrorForPerView(clientIP, CLIENT)
+				IncrDNSStatsFormatError(statIP)
+				IncrDNSStatsFormatErrorForPerView(statIP, CLIENT)
 			} else {
-				IncrDNSStatsOtherRCode(clientIP)
-				IncrDNSStatsOtherRCodeForPerView(clientIP, CLIENT)
+				IncrDNSStatsOtherRCode(statIP)
+				IncrDNSStatsOtherRCodeForPerView(statIP, CLIENT)
 			}
-			IncrDNSStatsTotalResponses(clientIP)
-			ResponseForPerView(clientIP)
 		}
 	}
 }
 
 func HandleResponseTruncated(clientIP, srvIP string) {
 	if !utils.IsInternalCall(clientIP, srvIP) {
-		if !utils.IsLocalIP(clientIP) {
-			IncrDNSStatsSuccessful(clientIP)
-			IncrDNSStatsSuccessfulForPerView(clientIP, CLIENT)
-			IncrDNSStatsTotalResponses(clientIP)
-			ResponseForPerView(clientIP)
+		if statIP := CreateCounterMetric(srvIP, clientIP, RESPONSE); statIP != "" {
+			IncrDNSStatsSuccessful(statIP)
+			IncrDNSStatsSuccessfulForPerView(statIP, CLIENT)
+			IncrDNSStatsTotalResponses(statIP)
+			ResponseForPerView(statIP)
 		}
 	}
 }
