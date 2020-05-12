@@ -1,0 +1,130 @@
+# Golang CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-go/ for more details
+version: 2
+jobs:
+  build:
+    docker:
+      # specify the version
+      - image: cimg/base:stable
+#    machine:
+#      image: ubuntu-1604:201903-01
+
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/postgres:9.4
+
+    #### TEMPLATE_NOTE: go expects specific checkout path representing url
+    #### expecting it in the form of
+    ####   /go/src/github.com/circleci/go-tool
+    ####   /go/src/bitbucket.org/circleci/go-tool
+    #working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
+    environment:
+      BEAT_VERSION: v6.5.4
+      GO_TGZ: go1.10.8.linux-amd64.tar.gz
+      GOPATH: $HOME/gocode
+    working_directory: ~/repo
+    steps:
+      - attach_workspace:
+          at: ~/repo
+#      - checkout
+      - run:
+          name: Checkout "${CIRCLE_PROJECT_REPONAME}"
+          command: |
+            mkdir -p ~/repo
+            cd ~/repo
+            git clone "https://github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git" .
+            git fetch --tags
+            git describe --tags
+            version=`git describe --abbrev=0 --tags`
+            git checkout tags/$version -b $version
+            git describe --abbrev=0 --tags > version
+
+      # specify any bash command here prefixed with `run: `
+      - run:
+          name: Update and install required libraries.
+          command: |
+            sudo apt-get update -q
+            sudo apt-get install -q -y gcc gcc-doc make make-doc gcc-multilib glibc-doc manpages-dev libpcap-dev
+      - run:
+          name: Setup Golang environment
+          command: |
+            wget -q https://dl.google.com/go/$GO_TGZ
+            sudo tar -vzxf $GO_TGZ -C /usr/local go
+      - run:
+          name: Clone packetbeat project
+          command: |
+            export GOPATH=~/gocode
+            mkdir -p $GOPATH/src/github.com/elastic
+            cd $GOPATH/src/github.com/elastic
+            git clone --branch $BEAT_VERSION https://github.com/elastic/beats
+            rm -rf ${GOPATH}/src/github.com/elastic/beats/packetbeat
+            cp -rf ~/repo/packetbeat ${GOPATH}/src/github.com/elastic/beats/packetbeat
+      - run:
+          name: Build packetbeat
+          command: |
+            export PATH=/usr/local/go/bin:$PATH
+            export GOPATH=$HOME/gocode
+            go version
+            go env
+            cd $GOPATH/src/github.com/elastic/beats/packetbeat
+            go get -t -d -v ./...
+            go build
+      - run:
+          name: Prepare to public
+          command: |
+            export GOPATH=~/gocode
+            ls -la ~/repo
+            ls -la $GOPATH/src/github.com/elastic/beats/packetbeat
+            mkdir -p ~/repo/artifacts/${CIRCLE_PROJECT_REPONAME}/{packetbeat,backup}
+            cd ~/repo/artifacts/
+            cp $GOPATH/src/github.com/elastic/beats/packetbeat/packetbeat ./${CIRCLE_PROJECT_REPONAME}/packetbeat/
+            cp -rf ~/repo/dns-snmp-agent/ ./${CIRCLE_PROJECT_REPONAME}/
+            cp -rf ~/repo/dns_traffic_deploy.sh ./${CIRCLE_PROJECT_REPONAME}/
+            tar -czvf ${CIRCLE_PROJECT_REPONAME}.tar.gz ${CIRCLE_PROJECT_REPONAME}
+#            rm -rf ${CIRCLE_PROJECT_REPONAME}
+#      - persist_to_workspace:
+#          root: ~/repo
+#          paths: artifacts
+      - run:
+          name: Publish Release on GitHub
+          command: |
+            export PATH=/usr/local/go/bin:$PATH
+            export GOPATH=~/gocode
+            go get -u github.com/tcnksm/ghr
+            ls -la $GOPATH/bin
+            VERSION=`cat ~/repo/version`
+            echo $CIRCLE_PROJECT_USERNAME
+            echo $CIRCLE_PROJECT_REPONAME
+            echo ${VERSION}
+            $GOPATH/bin/ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ~/repo/artifacts/
+#  publish:
+#    docker:
+#      - image: cibuilds/github
+#    working_directory: ~/repo
+#    steps:
+#      - attach_workspace:
+#          at: ~/repo
+#      - run:
+#          name: Publish Release on GitHub
+#          command: |
+#            ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete v2.1 ~/repo/artifacts/
+
+
+workflows:
+  version: 2
+  build-and-deploy:
+    jobs:
+      - build:
+          filters:
+            tags:
+              only: /^v.*/
+#      - publish:
+#          requires:
+#            - build
+#          filters:
+#            tags:
+#              only: /^v.*/
+#            branches:
+#              ignore: /.*/
