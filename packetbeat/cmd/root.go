@@ -43,6 +43,6 @@ func init() {
 	runFlags.AddGoFlag(flag.CommandLine.Lookup("l"))
 	runFlags.AddGoFlag(flag.CommandLine.Lookup("dump"))
 
-	RootCmd = cmd.GenRootCmdWithRunFlags(Name, "", beater.New, runFlags)
+	RootCmd = cmd.GenRootCmdWithRunFlags(Name, beater.Version, beater.New, runFlags)
 	RootCmd.AddCommand(genDevicesCommand())
 }

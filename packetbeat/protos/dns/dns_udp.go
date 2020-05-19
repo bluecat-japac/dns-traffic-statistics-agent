@@ -50,7 +50,7 @@ func (dns *dnsPlugin) ParseUDP(pkt *protos.Packet) {
 	debugf("Parsing packet addressed with %s of length %d.",
 		pkt.Tuple.String(), packetSize)
 
-	// TODO [Bluecat]: Disable DNS decoding
+	// [Bluecat]: Disable DNS decoding
 	//  Push raw data to Kafka directly, no decoding involved]
 
 	// dkduy: append [ip size] + [ip address] to raw packet

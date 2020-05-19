@@ -198,8 +198,7 @@ func (pb *packetbeat) setupFlows() error {
 
 func (pb *packetbeat) Run(b *beat.Beat) error {
 	// Show version
-	version := "v2.6"
-	logp.Info("Start Packetbeat version: %v", version)
+	logp.Info("Start Packetbeat version: %v", Version)
 	//[Bluecat] Start DNS Statistic Module
 	statsdns.InitStatisticsDNS()
 

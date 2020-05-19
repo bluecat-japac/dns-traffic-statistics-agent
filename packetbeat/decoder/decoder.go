@@ -157,13 +157,11 @@ func (d *Decoder) AddLayers(layers []gopacket.DecodingLayer) {
 }
 
 func (d *Decoder) Do(jobChan <-chan *model.PacketWrapper) {
-	//logp.Info("decoder started")
-	debugf("decoder started")
+	logp.Info("decoder started")
 	for pw := range jobChan {
 		d.decode(pw.Data, pw.CaptureInfo)
 	}
-	debugf("decoder stopped")
-	// logp.Info("decoder stopped")
+	logp.Info("decoder stopped")
 }
 
 //=============================Old Original Code ========================
