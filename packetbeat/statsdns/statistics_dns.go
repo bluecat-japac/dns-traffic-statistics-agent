@@ -91,10 +91,11 @@ type (
 
 var (
 	StatSrv                      *StatisticsService
-	ReqMap                       *RequestMap
+	ReqMaps                      []*RequestMap
 	mutex                        = &sync.RWMutex{}
 	StatInterval                 = time.Duration(30)
 	MaximumClients               = 200
+	MaximumReqMap                = 2
 	IpNetsClient                 []*net.IPNet
 	IpNetsServer                 []*net.IPNet
 	IpsClient                    []string
@@ -122,10 +123,7 @@ func InitStatisticsDNS() {
 
 		for IsActive {
 			StatSrv = &StatisticsService{StatsMap: make(map[string]*StatisticsDNS, MaximumClients)}
-			ReqMap = &RequestMap{RequestMessage: make(map[string]map[string]string, MaximumClients)}
-			ReqMap.RequestMessage[RQ_C_MAP] = make(map[string]string)
-			ReqMap.RequestMessage[RQ_S_MAP] = make(map[string]string)
-
+			onLoadReqMaps()
 			CreateCounterMetricPerView(MapViewIPs)
 
 			// Active flag sub for counter
@@ -155,6 +153,20 @@ func InitStatisticsDNS() {
 func Stop() {
 	IsActive = false
 	QStatDNS.Stop()
+}
+
+func onLoadReqMaps() {
+	// Load default RequestMap in ReqMaps array
+	// Lenght of ReqMaps is equal MaximumReqMap
+	reqMap := &RequestMap{RequestMessage: make(map[string]map[string]string, MaximumClients)}
+	reqMap.RequestMessage[RQ_C_MAP] = make(map[string]string)
+	reqMap.RequestMessage[RQ_S_MAP] = make(map[string]string)
+	if len(ReqMaps) < MaximumReqMap {
+		ReqMaps = append(ReqMaps, reqMap)
+	} else {
+		ReqMaps = ReqMaps[1:]
+		ReqMaps = append(ReqMaps, reqMap)
+	}
 }
 
 func IsValidInACL(statIP string, metricType string) bool {
@@ -220,7 +232,7 @@ func ReceivedMessage(msg *model.Record) {
 	defer func() {
 		if err := recover(); err != nil {
 			QStatDNS.PushRecordDNS(msg)
-			logp.Debug("statsdns.ReceivedMessage"," %s", err)
+			logp.Debug("statsdns.ReceivedMessage", " %s", err)
 			return
 		}
 	}()
@@ -331,7 +343,7 @@ func Queries(srcIp string, dstIp string) {
 			// Default isDuplicated false in here
 			queryDNS := NewQueryDNS(srcIp, dstIp, false)
 			QStatDNS.PushQueryDNS(queryDNS)
-			logp.Debug("statsdns.Queries"," %s", err)
+			logp.Debug("statsdns.Queries", " %s", err)
 			return
 		}
 	}()
@@ -695,8 +707,8 @@ func AddRequestMsgMap(clientIP, srvIP string, reqID uint16, questions []mkdns.Qu
 			mutex.Lock()
 			// Make sure only the first received query will be added into the map
 			// The first received client's request will be counted as recursion in case recursion happened
-			if _, exist := ReqMap.RequestMessage[metricType][rqKey]; !exist {
-				ReqMap.RequestMessage[metricType][rqKey] = rqItem
+			if _, exist := ReqMaps[len(ReqMaps) - 1].RequestMessage[metricType][rqKey]; !exist {
+				ReqMaps[len(ReqMaps) - 1].RequestMessage[metricType][rqKey] = rqItem
 			}
 			mutex.Unlock()
 		}
@@ -727,8 +739,10 @@ func CalculateRecursiveMsg(clientIP, srvIP string, reqID uint16, questions []mkd
 			recursiveDNS := NewRecursiveDNS(clientIP, isSuccess)
 			QStatDNS.PushRecursiveDNS(recursiveDNS)
 			mutex.Lock()
-			delete(ReqMap.RequestMessage[RQ_S_MAP], rqKey)
-			delete(ReqMap.RequestMessage[RQ_C_MAP], rqKey)
+			for _, reqMap := range ReqMaps{
+				delete(reqMap.RequestMessage[RQ_S_MAP], rqKey)
+				delete(reqMap.RequestMessage[RQ_C_MAP], rqKey)
+			}
 			mutex.Unlock()
 		}
 	}
@@ -744,8 +758,13 @@ func genKeyItem(question mkdns.Question) string {
 
 func existQuery(rqKey, rqItem, metricType string) bool {
 	existing := false
-	if value, exist := ReqMap.RequestMessage[metricType][rqKey]; exist {
-		existing = value == rqItem
+	for _, reqMap := range ReqMaps{
+		if value, exist := reqMap.RequestMessage[metricType][rqKey]; exist {
+			existing = value == rqItem
+			if existing {
+				break
+			}
+		}
 	}
 	return existing
 }

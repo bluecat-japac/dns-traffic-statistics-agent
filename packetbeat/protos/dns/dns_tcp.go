@@ -284,7 +284,7 @@ func (dns *dnsPlugin) publishResponseError(conn *dnsConnectionData, err error) {
 	//streamReverse.message.Length = len(streamReverse.rawData)
 	//trans.Response = streamReverse.message
 
-	dns.publishTransaction(trans)
+	dns.publishTransaction(trans, false)
 	dns.deleteTransaction(hashDNSTupleOrigin)
 }
 

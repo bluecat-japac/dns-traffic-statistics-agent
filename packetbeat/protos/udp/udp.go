@@ -71,7 +71,7 @@ func (udp *UDP) Process(id *flows.FlowID, pkt *protos.Packet) {
 	}
 
 	if len(pkt.Payload) > 0 {
-		// TODO [Bluecat]
+		// [Bluecat]
 		// logp.Debug("udp", "Parsing packet from %v of length %d.",
 		// 	pkt.Tuple.String(), len(pkt.Payload))
 		plugin.ParseUDP(pkt)

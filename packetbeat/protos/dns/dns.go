@@ -338,7 +338,7 @@ func (dns *dnsPlugin) receivedDNSRequest(tuple *dnsTuple, msg *dnsMessage) {
 
 		trans.notes = append(trans.notes, duplicateQueryMsg.Error())
 		debugf("%s %s", duplicateQueryMsg.Error(), tuple.String())
-		dns.publishTransaction(trans)
+		dns.publishTransaction(trans, false)
 		dns.deleteTransaction(trans.tuple.hashable())
 	}
 
@@ -366,6 +366,7 @@ func (dns *dnsPlugin) receivedDNSResponse(tuple *dnsTuple, msg *dnsMessage) {
 	debugf("Processing response. %s", tuple.String())
 	srcIP := msg.tuple.SrcIP.String()
 	dstIP := msg.tuple.DstIP.String()
+	isDrop := false
 	// Don't receive internal DNS response
 	if utils.IsInternalCall(srcIP, dstIP) {
 		return
@@ -377,6 +378,7 @@ func (dns *dnsPlugin) receivedDNSResponse(tuple *dnsTuple, msg *dnsMessage) {
 		trans.notes = append(trans.notes, orphanedResponse.Error())
 		// [Bluecat]
 		debugf("%s %s", orphanedResponse.Error(), tuple.String())
+		isDrop = true
 		unmatchedResponses.Add(1)
 	}
 
@@ -408,11 +410,11 @@ func (dns *dnsPlugin) receivedDNSResponse(tuple *dnsTuple, msg *dnsMessage) {
 		statsdns.CalculateRecursiveMsg(trans.src.IP, trans.dst.IP, tuple.id, trans.request.data.Question, trans.response.data)
 	}
 
-	dns.publishTransaction(trans)
+	dns.publishTransaction(trans, isDrop)
 	dns.deleteTransaction(trans.tuple.hashable())
 }
 
-func (dns *dnsPlugin) publishTransaction(t *dnsTransaction) {
+func (dns *dnsPlugin) publishTransaction(t *dnsTransaction, isDrop bool) {
 	debugf("publishTransaction")
 	if dns.results == nil {
 		return
@@ -482,8 +484,9 @@ func (dns *dnsPlugin) publishTransaction(t *dnsTransaction) {
 	record.DNS = dnsRec
 
 	logp.Debug("Record Decoded", "%v", record)
-
-	statsdns.QStatDNS.PushRecordDNS(record)
+	if !isDrop {
+		statsdns.QStatDNS.PushRecordDNS(record)
+	}
 }
 
 // dnsToString converts a DNS message to a string.
@@ -550,7 +553,7 @@ func dnsToString(dns *mkdns.Msg) string {
 func (dns *dnsPlugin) expireTransaction(t *dnsTransaction) {
 	t.notes = append(t.notes, noResponse.Error())
 	// debugf("%s %s", noResponse.Error(), t.tuple.String())
-	dns.publishTransaction(t)
+	dns.publishTransaction(t, true)
 	unmatchedRequests.Add(1)
 }
 
