@@ -12,6 +12,13 @@
 # Select the network interface to sniff the data. On Linux, you can use the
 # "any" keyword to sniff on all connected interfaces.
 packetbeat.interfaces.device: any
+packetbeat.interfaces.type: af_packet
+packetbeat.interfaces.buffer_size_mb: 100
+
+# "vlan" configuration 
+# If using 'any', sniffer will capture duplicated DNS packet 
+#packetbeat.interfaces.device: eth0
+#packetbeat.interfaces.with_vlans: true
 
 #================================== Flows =====================================
 
