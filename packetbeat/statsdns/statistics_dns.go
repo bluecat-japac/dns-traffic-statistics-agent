@@ -155,7 +155,6 @@ func Stop() {
 	QStatDNS.Stop()
 }
 
-
 func onLoadReqMaps() {
 	// Load default RequestMap in ReqMaps array
 	// Lenght of ReqMaps is equal MaximumReqMap
