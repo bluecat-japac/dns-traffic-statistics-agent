@@ -12,6 +12,13 @@
 # Select the network interface to sniff the data. On Linux, you can use the
 # "any" keyword to sniff on all connected interfaces.
 packetbeat.interfaces.device: any
+packetbeat.interfaces.type: af_packet
+packetbeat.interfaces.buffer_size_mb: 100
+
+# If using 'any', sniffer will capture duplicated DNS packets
+# For "vlan" configuration, use below option
+#packetbeat.interfaces.device: eth0
+#packetbeat.interfaces.with_vlans: true
 
 #================================== Flows =====================================
 
@@ -58,10 +65,10 @@ packetbeat.protocols:
   # (additional resource records) is added to messages.
   include_additionals: true
 
-- type: http
-  # Configure the ports where to listen for HTTP traffic. You can disable
-  # the HTTP protocol by commenting out the list of ports.
-  ports: [51415]
+# - type: http
+#   # Configure the ports where to listen for HTTP traffic. You can disable
+#   # the HTTP protocol by commenting out the list of ports.
+#   ports: [51415]
 
 # - type: memcache
 #   # Configure the ports where to listen for memcache traffic. You can disable

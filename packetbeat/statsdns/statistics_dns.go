@@ -104,10 +104,16 @@ var (
 	MapViewIPs                   map[int]map[string][]string
 	QStatDNS                     *QueueStatDNS
 	IsActive                     bool
+	StatHTTPServerAddr           string
 )
 
 func InitStatisticsDNS() {
+	// Get data from statistics_config.json
 	GetConfigDNSStatistics()
+	// Update ACL client, server and MapViewIPs
+	ReloadNamedData()
+	// Start HTTP server
+	go onLoadHTTPServer()
 	// Create chan for management Statistic DNS counter
 	QStatDNS = NewQueueStatDNS()
 	QStatDNS.isPopWait = true
@@ -154,7 +160,6 @@ func Stop() {
 	IsActive = false
 	QStatDNS.Stop()
 }
-
 
 func onLoadReqMaps() {
 	// Load default RequestMap in ReqMaps array
@@ -660,9 +665,12 @@ func GetConfigDNSStatistics() {
 	config_statistics.Init()
 	StatInterval = config_statistics.ConfigStat.StatisticsInterval
 	MaximumClients = config_statistics.ConfigStat.MaximumClients
-	UrlAnnouncementDeployFromBam = strings.Replace(config_statistics.ConfigStat.UrlAnnouncementDeployFromBam, "http://", "", -1)
+	StatHTTPServerAddr = config_statistics.ConfigStat.StatHTTPServerAddr
+	UrlAnnouncementDeployFromBam = config_statistics.ConfigStat.UrlAnnouncementDeployFromBam
+}
+
+func ReloadNamedData() {
 	//Read named.conf get ACL Ips Range
-	logp.Info("Reading ACL In Named Config")
 	IPServerRangesInACL, IPClientRangesInACL, IPsServerInACL, IPsClientInACL, MapViewIPsInMatchClients := config_statistics.ReadACLInNamedConfig()
 
 	IpNetsServer = IPServerRangesInACL
@@ -676,16 +684,6 @@ func GetConfigDNSStatistics() {
 	logp.Info("IP In ACL Server: %v", IpsServer)
 	logp.Info("IPs In ACL Client: %v", IpsClient)
 	logp.Info("Map View Client IPs %v", MapViewIPs)
-}
-
-func ReceiveHttpRequest(payloadString string) {
-	arraySplitUrlAnnouncementFromBam := strings.Split(UrlAnnouncementDeployFromBam, "/")
-	checkUri := strings.Contains(payloadString, arraySplitUrlAnnouncementFromBam[len(arraySplitUrlAnnouncementFromBam)-1])
-	checkHostPort := strings.Contains(payloadString, arraySplitUrlAnnouncementFromBam[0])
-	if checkUri && checkHostPort {
-		logp.Info("http request with payload %s", payloadString)
-		GetConfigDNSStatistics()
-	}
 }
 
 // Store all request messages into the corresponding map for Incoming messages and Outgoing messages
@@ -708,8 +706,8 @@ func AddRequestMsgMap(clientIP, srvIP string, reqID uint16, questions []mkdns.Qu
 			mutex.Lock()
 			// Make sure only the first received query will be added into the map
 			// The first received client's request will be counted as recursion in case recursion happened
-			if _, exist := ReqMaps[len(ReqMaps) - 1].RequestMessage[metricType][rqKey]; !exist {
-				ReqMaps[len(ReqMaps) - 1].RequestMessage[metricType][rqKey] = rqItem
+			if _, exist := ReqMaps[len(ReqMaps)-1].RequestMessage[metricType][rqKey]; !exist {
+				ReqMaps[len(ReqMaps)-1].RequestMessage[metricType][rqKey] = rqItem
 			}
 			mutex.Unlock()
 		}
@@ -740,7 +738,7 @@ func CalculateRecursiveMsg(clientIP, srvIP string, reqID uint16, questions []mkd
 			recursiveDNS := NewRecursiveDNS(clientIP, isSuccess)
 			QStatDNS.PushRecursiveDNS(recursiveDNS)
 			mutex.Lock()
-			for _, reqMap := range ReqMaps{
+			for _, reqMap := range ReqMaps {
 				delete(reqMap.RequestMessage[RQ_S_MAP], rqKey)
 				delete(reqMap.RequestMessage[RQ_C_MAP], rqKey)
 			}
@@ -759,7 +757,7 @@ func genKeyItem(question mkdns.Question) string {
 
 func existQuery(rqKey, rqItem, metricType string) bool {
 	existing := false
-	for _, reqMap := range ReqMaps{
+	for _, reqMap := range ReqMaps {
 		if value, exist := reqMap.RequestMessage[metricType][rqKey]; exist {
 			existing = value == rqItem
 			if existing {

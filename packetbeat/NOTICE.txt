@@ -31,6 +31,7 @@ outstats/
 statsdns/
 stats/
 utils/
+beater/version.go
 decoder/ipdefrag/ip4defrag/defrag.go
 decoder/ipdefrag/ip4defrag/test_defrag.go
 decoder/ipdefrag/ip6defrag/defrag.go

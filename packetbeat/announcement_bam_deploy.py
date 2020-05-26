@@ -14,7 +14,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""[Announcement_bam_deploy]
+Send HTTS's request to reload Named after BDDS receive deploy from BAM
+Informations(IP, port) need match with:
+    - Agent: config.py in dns-snmp-agent
+    - Packetbeat: statistics_config.json
+"""
 import httplib
-conn = httplib.HTTPConnection("127.0.0.1", 51415)
-conn.request("GET", "/announcement-deploy-from-bam")
 
+# Request to Agent HTTP
+try:
+    conn = httplib.HTTPConnection("127.0.0.1", 51415)
+    conn.request("GET", "/announcement-deploy-from-bam")
+except Exception as ex:
+    pass
+
+# Request to Packetbeat HTTP server
+try:
+    conn = httplib.HTTPConnection("127.0.0.1", 51416)
+    conn.request("GET", "/announcement-deploy-from-bam")
+except Exception as ex:
+    pass
