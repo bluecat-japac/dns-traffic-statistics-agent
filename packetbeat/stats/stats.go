@@ -65,7 +65,7 @@ var (
 
 func init() {
 	go func() {
-		ticker := time.NewTicker(10 * time.Second)
+		ticker := time.NewTicker(20 * time.Second)
 		glb = &Statistics{Start: time.Now()}
 
 		for {

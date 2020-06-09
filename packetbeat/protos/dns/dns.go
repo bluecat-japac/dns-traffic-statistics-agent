@@ -41,6 +41,8 @@ import (
 	"github.com/elastic/beats/packetbeat/protos"
 
 	"github.com/elastic/beats/packetbeat/statsdns"
+	// Stats for debug
+	"github.com/elastic/beats/packetbeat/stats"
 	"github.com/elastic/beats/packetbeat/utils"
 	mkdns "github.com/miekg/dns"
 	"golang.org/x/net/publicsuffix"
@@ -424,6 +426,7 @@ func (dns *dnsPlugin) publishTransaction(t *dnsTransaction, isDrop bool) {
 	if dns.dropDecodedPacket {
 		// Do nothing, just drop the decoded messages
 		// Use this for testing/benchmarking only
+		stats.IncrDNSDropped()
 		return
 	}
 
@@ -1109,3 +1112,4 @@ func handleErrorMsg(srcIP, dstIP string, transp transport, rawData []byte, tuple
 		statsdns.HandleRequestDecodeErr(srcIP, dstIP)
 	}
 }
+ 

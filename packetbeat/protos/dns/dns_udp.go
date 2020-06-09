@@ -22,7 +22,7 @@ import (
 	"github.com/elastic/beats/packetbeat/procs"
 	"github.com/elastic/beats/packetbeat/protos"
 	//Bluecat
-	//"github.com/elastic/beats/packetbeat/stats"
+	"github.com/elastic/beats/packetbeat/stats"
 )
 
 // Only EDNS packets should have their size beyond this value
@@ -43,44 +43,12 @@ func (dns *dnsPlugin) ParseUDP(pkt *protos.Packet) {
 	packetSize := len(pkt.Payload)
 	// logp.Info("Received a packet UDP")
 	debugf("Parse UDP OF DNS Packet")
-	//Bluecat Disable Old Statistic
-	//stats.IncrDNSUDPReceived()
-	//stats.IncrDNSReceived()
+	// [Bluecat]
+	stats.IncrDNSUDPReceived()
+	stats.IncrDNSReceived()
 
 	debugf("Parsing packet addressed with %s of length %d.",
 		pkt.Tuple.String(), packetSize)
-
-	// [Bluecat]: Disable DNS decoding
-	//  Push raw data to Kafka directly, no decoding involved]
-
-	// dkduy: append [ip size] + [ip address] to raw packet
-	// var customizeDnsRaw []byte
-
-	// ip_size := len(pkt.Tuple.SrcIP)
-	// customizeDnsRaw = []byte(string(ip_size) + string(pkt.Tuple.SrcIP) + string(pkt.Payload))
-
-	// fmt.Println(ip_size, pkt.Tuple.SrcIP, customizeDnsRaw)
-
-	// dns.kafkaProd.Input() <- &sarama.ProducerMessage{
-	// 	Timestamp: time.Now(),
-	// 	Topic:     dns.kafkaConf.Topic,
-	// 	//Value:     BytesEncoder(pkt.Payload),
-	// 	Value: BytesEncoder(customizeDnsRaw),
-	// }
-	// stats.IncrKafkaPublished()
-	//debugf("Parse UDP OF DNS Packet RETURN NOT DECODED JUST RAW")
-	//return
-
-	//[Bluecat]
-	//Drop packet if it's IP doesn't contain in Valid Array IP Range That has been configured in statistics_config.json
-
-	// logp.Info("%s", pkt.Tuple.SrcIP.String())
-	// logp.Info("%v", statsdns.IPsNet)
-	// logp.Info("%t", utils.CheckIPInRanges(pkt.Tuple.SrcIP.String(), statsdns.IPsNet))
-
-	// if !utils.CheckIPInRanges(pkt.Tuple.SrcIP.String(), statsdns.IPsNet) {
-	// 	return
-	// }
 
 	dnsPkt, err := decodeDNSData(transportUDP, pkt.Payload)
 
@@ -96,8 +64,8 @@ func (dns *dnsPlugin) ParseUDP(pkt *protos.Packet) {
 		return
 	}
 
-	///Bluecat Disable Old Statistic
-	//stats.IncrDNSDecoded()
+	// [Bluecat]
+	stats.IncrDNSDecoded()
 
 	dnsTuple := dnsTupleFromIPPort(&pkt.Tuple, transportUDP, dnsPkt.Id)
 	dnsMsg := &dnsMessage{
@@ -109,13 +77,12 @@ func (dns *dnsPlugin) ParseUDP(pkt *protos.Packet) {
 	}
 
 	if dnsMsg.data.Response {
-		///Bluecat Disable Old Statistic
-		//stats.IncrDNSResponse()
+		// Bluecat 
+		stats.IncrDNSResponse()
 		dns.receivedDNSResponse(&dnsTuple, dnsMsg)
 	} else /* Query */ {
-		///Bluecat Disable Old Statistic
-		//stats.IncrDNSRequest()
+		// Bluecat 
+		stats.IncrDNSRequest()
 		dns.receivedDNSRequest(&dnsTuple, dnsMsg)
-
 	}
 }
