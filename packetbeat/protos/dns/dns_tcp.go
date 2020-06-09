@@ -20,7 +20,7 @@ package dns
 import (
 	"encoding/binary"
 	//Bluecat
-	// "github.com/elastic/beats/packetbeat/stats"
+	"github.com/elastic/beats/packetbeat/stats"
 
 	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/logp"
@@ -59,9 +59,10 @@ type dnsConnectionData struct {
 func (dns *dnsPlugin) Parse(pkt *protos.Packet, tcpTuple *common.TCPTuple, dir uint8, private protos.ProtocolData) protos.ProtocolData {
 	defer logp.Recover("Dns ParseTcp")
 	// stats.IncrDNSStatsTCPReceived()
-	//Bluecat
-	// stats.IncrDNSTCPReceived()
-	// stats.IncrDNSReceived()
+	// [Bluecat]
+	stats.IncrDNSTCPReceived()
+	stats.IncrDNSReceived()
+
 	debugf("Parsing packet addressed with %s of length %d.",
 		pkt.Tuple.String(), len(pkt.Payload))
 
@@ -101,8 +102,8 @@ func ensureDNSConnection(private protos.ProtocolData) *dnsConnectionData {
 		logp.Warn("Unexpected: dns connection data not set, create new one")
 		return &dnsConnectionData{}
 	}
-	//Bluecat
-	//stats.IncrDNSDecoded()
+	// [Bluecat]
+	stats.IncrDNSDecoded()
 	return conn
 }
 

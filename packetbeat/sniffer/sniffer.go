@@ -27,7 +27,7 @@ import (
 
 	"github.com/elastic/beats/packetbeat/model"
 	/////Bluecat Disable Old Statistic
-	// "github.com/elastic/beats/packetbeat/stats"
+	"github.com/elastic/beats/packetbeat/stats"
 
 	"github.com/tsg/gopacket"
 	"github.com/tsg/gopacket/layers"
@@ -235,9 +235,14 @@ func (s *Sniffer) Run() error {
 		}
 
 		counter++
+		// [Bluecat]
+		stats.IncrSniffTotalCaptured()
+		logp.Debug("sniffer", "Packet number: %d", counter)
+
 		if s.dropSniffedPacket {
 			// Do nothing, just drop the sniffed messages
 			// Use this for testing/benchmarking only
+			stats.IncrSniffDropped()
 			continue
 		}
 
