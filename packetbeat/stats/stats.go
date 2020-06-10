@@ -1,11 +1,11 @@
 // Copyright 2019 BlueCat Networks (USA) Inc. and its affiliates
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -42,13 +42,14 @@ type (
 	}
 
 	DNS struct {
-		TotalReceived int64 `json:"total_received"`
-		TCPReceived   int64 `json:"tcp_received"`
-		UDPReceived   int64 `json:"udp_received"`
-		Request       int64 `json:"request"`
-		Response      int64 `json:"response"`
-		Decoded       int64 `json:"decoded"`
-		Dropped       int64 `json:"dropped"`
+		TotalReceived    int64 `json:"total_received"`
+		TCPReceived      int64 `json:"tcp_received"`
+		UDPReceived      int64 `json:"udp_received"`
+		Request          int64 `json:"request"`
+		Response         int64 `json:"response"`
+		Decoded          int64 `json:"decoded"`
+		Dropped          int64 `json:"dropped"`
+		OrphanedResponse int64 `json:"orphanedResponse"`
 	}
 
 	Publish struct {
@@ -89,6 +90,10 @@ func IncrSniffTotalCaptured() {
 }
 func IncrSniffDropped() {
 	atomic.AddInt64(&glb.Sniff.Dropped, 1)
+}
+
+func IncrOrphanedResponse() {
+	atomic.AddInt64(&glb.Decode.DNS.OrphanedResponse, 1)
 }
 
 func IncrDNSReceived() {

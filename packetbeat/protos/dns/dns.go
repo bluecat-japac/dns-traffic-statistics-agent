@@ -380,6 +380,7 @@ func (dns *dnsPlugin) receivedDNSResponse(tuple *dnsTuple, msg *dnsMessage) {
 		trans.notes = append(trans.notes, orphanedResponse.Error())
 		// [Bluecat]
 		debugf("%s %s", orphanedResponse.Error(), tuple.String())
+		stats.IncrOrphanedResponse()
 		isDrop = true
 		unmatchedResponses.Add(1)
 	}
