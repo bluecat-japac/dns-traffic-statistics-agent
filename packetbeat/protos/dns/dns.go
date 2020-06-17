@@ -340,6 +340,9 @@ func (dns *dnsPlugin) receivedDNSRequest(tuple *dnsTuple, msg *dnsMessage) {
 
 		trans.notes = append(trans.notes, duplicateQueryMsg.Error())
 		debugf("%s %s", duplicateQueryMsg.Error(), tuple.String())
+		// More log to debug duplicate
+		debugf("Duplicate - Old Request: reqID=%d - time=%s - question=%v", trans.request.data.MsgHdr.Id, trans.request.ts, trans.request.data.Question)
+		debugf("Duplicate - New Request: reqID=%d - time=%s - question=%v", msg.data.MsgHdr.Id, msg.ts, msg.data.Question)
 		dns.publishTransaction(trans, false)
 		dns.deleteTransaction(trans.tuple.hashable())
 	}
