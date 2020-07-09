@@ -30,6 +30,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"reflect"
 
 	"github.com/Shopify/sarama"
 
@@ -333,11 +334,16 @@ func (dns *dnsPlugin) receivedDNSRequest(tuple *dnsTuple, msg *dnsMessage) {
 	if trans != nil {
 		// This happens if a client puts multiple requests in flight
 		// with the same ID.
-		//Bluecat Check Duplicate Messsage
-		isDuplicated = true
 
 		trans.notes = append(trans.notes, duplicateQueryMsg.Error())
 		debugf("%s %s", duplicateQueryMsg.Error(), tuple.String())
+		// More log to debug duplicate
+		debugf("Duplicate - Old Request: reqID=%d - time=%s - question=%v", trans.request.data.MsgHdr.Id, trans.request.ts, trans.request.data.Question)
+		debugf("Duplicate - New Request: reqID=%d - time=%s - question=%v", msg.data.MsgHdr.Id, msg.ts, msg.data.Question)
+		if reflect.DeepEqual(trans.request.data.Question, msg.data.Question){
+			//Bluecat Check Duplicate Messsage
+			isDuplicated = true
+		}
 		dns.publishTransaction(trans, false)
 		dns.deleteTransaction(trans.tuple.hashable())
 	}

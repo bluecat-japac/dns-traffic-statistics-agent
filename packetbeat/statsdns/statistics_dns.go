@@ -50,6 +50,10 @@ const (
 	NXRRSET    = "NXRRSET"
 )
 
+var (
+	debugf = logp.MakeDebug("dns")
+)
+
 type (
 	// Statistics service
 	StatisticsService struct {
@@ -155,6 +159,7 @@ func Stop() {
 	QStatDNS.Stop()
 }
 
+
 func onLoadReqMaps() {
 	// Load default RequestMap in ReqMaps array
 	// Lenght of ReqMaps is equal MaximumReqMap
@@ -241,6 +246,7 @@ func ReceivedMessage(msg *model.Record) {
 	IncrDNSStatsTotalResponses(clientIP)
 	ResponseForPerView(clientIP)
 
+	debugf("[ReceivedMessage] ID: %s - transp: %s - responseCode: %s - answersCount: %s", msg.DNS.ID,  msg.Transport, responseCode, answersCount)
 	if responseCode == NOERROR {
 		if answersCount > 0 {
 			// Successful case
@@ -265,6 +271,10 @@ func ReceivedMessage(msg *model.Record) {
 			if foundNS {
 				IncrDNSStatsReferral(clientIP)
 				IncrDNSStatsReferralForPerView(clientIP, metricType)
+			} else {
+				// NXRRSet: NOERROR and no answer
+				IncrDNSStatsNXRRSet(clientIP)
+				IncrDNSStatsNXRRSetForPerView(clientIP, metricType)
 			}
 		}
 	} else if responseCode == NXRRSET {
