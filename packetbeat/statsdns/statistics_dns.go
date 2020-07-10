@@ -23,6 +23,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/logp"
 	"github.com/elastic/beats/packetbeat/config_statistics"
 	"github.com/elastic/beats/packetbeat/model"
@@ -48,6 +49,10 @@ const (
 	RESPONSE   = "Response"
 	RQ_ERR_MAP = "Formerr"
 	NXRRSET    = "NXRRSET"
+)
+
+var (
+	debugf = logp.MakeDebug("dns")
 )
 
 type (
@@ -155,6 +160,7 @@ func Stop() {
 	QStatDNS.Stop()
 }
 
+
 func onLoadReqMaps() {
 	// Load default RequestMap in ReqMaps array
 	// Lenght of ReqMaps is equal MaximumReqMap
@@ -223,6 +229,7 @@ func ReceivedMessage(msg *model.Record) {
 	responseTime := msg.ResponseTime
 	responseCode := msg.DNS.ResponseCode
 	authoritiesCount := msg.DNS.AuthoritiesCount
+	responseStatus := msg.Status
 
 	// First message for this client/AS
 	if !newStats(clientIP, metricType) {
@@ -241,7 +248,8 @@ func ReceivedMessage(msg *model.Record) {
 	IncrDNSStatsTotalResponses(clientIP)
 	ResponseForPerView(clientIP)
 
-	if responseCode == NOERROR {
+	debugf("[ReceivedMessage] ID: %s - transp: %s - responseCode: %s - answersCount: %s", msg.DNS.ID,  msg.Transport, responseCode, answersCount)
+	if responseCode == NOERROR && responseStatus == common.OK_STATUS {
 		if answersCount > 0 {
 			// Successful case
 			IncrDNSStatsSuccessful(clientIP)
@@ -265,6 +273,10 @@ func ReceivedMessage(msg *model.Record) {
 			if foundNS {
 				IncrDNSStatsReferral(clientIP)
 				IncrDNSStatsReferralForPerView(clientIP, metricType)
+			} else {
+				// NXRRSet: NOERROR and no answer
+				IncrDNSStatsNXRRSet(clientIP)
+				IncrDNSStatsNXRRSetForPerView(clientIP, metricType)
 			}
 		}
 	} else if responseCode == NXRRSET {

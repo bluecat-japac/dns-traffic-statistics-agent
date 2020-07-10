@@ -30,6 +30,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"reflect"
 
 	"github.com/Shopify/sarama"
 
@@ -84,7 +85,7 @@ type transport uint8
 var (
 	unmatchedRequests  = monitoring.NewInt(nil, "dns.unmatched_requests")
 	unmatchedResponses = monitoring.NewInt(nil, "dns.unmatched_responses")
-	listTruncateRespID = make(map[uint16]bool)
+	// listTruncateRespID = make(map[uint16]bool)
 )
 
 const (
@@ -333,11 +334,16 @@ func (dns *dnsPlugin) receivedDNSRequest(tuple *dnsTuple, msg *dnsMessage) {
 	if trans != nil {
 		// This happens if a client puts multiple requests in flight
 		// with the same ID.
-		//Bluecat Check Duplicate Messsage
-		isDuplicated = true
 
 		trans.notes = append(trans.notes, duplicateQueryMsg.Error())
 		debugf("%s %s", duplicateQueryMsg.Error(), tuple.String())
+		// More log to debug duplicate
+		debugf("Duplicate - Old Request: reqID=%d - time=%s - question=%v", trans.request.data.MsgHdr.Id, trans.request.ts, trans.request.data.Question)
+		debugf("Duplicate - New Request: reqID=%d - time=%s - question=%v", msg.data.MsgHdr.Id, msg.ts, msg.data.Question)
+		if reflect.DeepEqual(trans.request.data.Question, msg.data.Question){
+			//Bluecat Check Duplicate Messsage
+			isDuplicated = true
+		}
 		dns.publishTransaction(trans, false)
 		dns.deleteTransaction(trans.tuple.hashable())
 	}
@@ -466,10 +472,15 @@ func (dns *dnsPlugin) publishTransaction(t *dnsTransaction, isDrop bool) {
 			record.Resource = t.request.data.Question[0].Name
 		}
 		dnsRec = toDNSRecord(t.request.data, dns.includeAuthorities, dns.includeAdditionals)
-		if listTruncateRespID[t.request.data.Id] {
-			delete(listTruncateRespID, t.request.data.Id)
-			return
-		}
+		// [Bluecat]
+		// if listTruncateRespID[t.request.data.Id] {
+		// 	delete(listTruncateRespID, t.request.data.Id)
+		// 	return
+		// }
+		// If transaction has not response, 
+		// not need to increase TotalResponse and otherDNSType
+		// [eg: Responses decode error]
+		return
 	} else if t.response != nil {
 		record.BytesOut = t.response.length
 		record.Method = dnsOpCodeToString(t.response.data.Opcode)
@@ -1099,7 +1110,7 @@ func handleErrorMsg(srcIP, dstIP string, transp transport, rawData []byte, tuple
 	dnsHdr, _ := decodeDNSHeader(transp, rawData)
 	if dnsHdr.Response {
 		if dnsHdr.MsgHdr.Truncated == true {
-			listTruncateRespID[dnsHdr.MsgHdr.Id] = true
+			// listTruncateRespID[dnsHdr.MsgHdr.Id] = true
 			statsdns.HandleResponseTruncated(dstIP, srcIP)
 		} else {
 			statsdns.HandleResponseDecodeErr(dstIP, srcIP, dnsResponseCodeToString(dnsHdr.MsgHdr.Rcode))
