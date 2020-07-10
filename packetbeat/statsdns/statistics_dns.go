@@ -23,6 +23,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/logp"
 	"github.com/elastic/beats/packetbeat/config_statistics"
 	"github.com/elastic/beats/packetbeat/model"
@@ -228,6 +229,7 @@ func ReceivedMessage(msg *model.Record) {
 	responseTime := msg.ResponseTime
 	responseCode := msg.DNS.ResponseCode
 	authoritiesCount := msg.DNS.AuthoritiesCount
+	responseStatus := msg.Status
 
 	// First message for this client/AS
 	if !newStats(clientIP, metricType) {
@@ -247,7 +249,7 @@ func ReceivedMessage(msg *model.Record) {
 	ResponseForPerView(clientIP)
 
 	debugf("[ReceivedMessage] ID: %s - transp: %s - responseCode: %s - answersCount: %s", msg.DNS.ID,  msg.Transport, responseCode, answersCount)
-	if responseCode == NOERROR {
+	if responseCode == NOERROR && responseStatus == common.OK_STATUS {
 		if answersCount > 0 {
 			// Successful case
 			IncrDNSStatsSuccessful(clientIP)
