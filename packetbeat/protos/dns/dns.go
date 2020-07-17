@@ -340,6 +340,14 @@ func (dns *dnsPlugin) receivedDNSRequest(tuple *dnsTuple, msg *dnsMessage) {
 		// More log to debug duplicate
 		debugf("Duplicate - Old Request: reqID=%d - time=%s - question=%v", trans.request.data.MsgHdr.Id, trans.request.ts, trans.request.data.Question)
 		debugf("Duplicate - New Request: reqID=%d - time=%s - question=%v", msg.data.MsgHdr.Id, msg.ts, msg.data.Question)
+
+		// This case: filter duplicate msg has same time
+		// Avoid af_packet issue that capture the same packet twice
+		if reflect.DeepEqual(trans.request.ts, msg.ts) {
+			dns.transactions.Put(tuple.hashable(), trans)
+			return
+		}
+
 		if reflect.DeepEqual(trans.request.data.Question, msg.data.Question){
 			//Bluecat Check Duplicate Messsage
 			isDuplicated = true
