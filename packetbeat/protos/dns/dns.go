@@ -356,7 +356,6 @@ func (dns *dnsPlugin) receivedDNSRequest(tuple *dnsTuple, msg *dnsMessage) {
 		dns.deleteTransaction(trans.tuple.hashable())
 	}
 
-	logp.Info("Request infor: srcIP=%v - dstIP=%v reqID=%d - time=%s - question=%v", srcIP, dstIP, msg.data.MsgHdr.Id, msg.ts, msg.data.Question)
 	//Bluecat
 	queryDNS := statsdns.NewQueryDNS(srcIP, dstIP, isDuplicated)
 	statsdns.QStatDNS.PushQueryDNS(queryDNS)
