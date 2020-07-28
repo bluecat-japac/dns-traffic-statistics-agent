@@ -73,8 +73,15 @@ jobs:
             export GOPATH=$HOME/gocode
             go version
             go env
+            ls -la $GOPATH/src/github.com/elastic/beats/vendor/github.com/tsg
+            echo "Check old gopacket"
+            cat $GOPATH/src/github.com/elastic/beats/vendor/github.com/tsg/gopacket/afpacket/afpacket.go
+            echo "Remove old gopacket"
+            rm -rf $GOPATH/src/github.com/elastic/beats/vendor/github.com/tsg/gopacket
             cd $GOPATH/src/github.com/elastic/beats/packetbeat
             go get -t -d -v ./...
+            echo "Check new gopacket"
+            cat $GOPATH/src/github.com/tsg/gopacket/afpacket/afpacket.go
             go build
       - run:
           name: Prepare to public
