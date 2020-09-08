@@ -116,6 +116,5 @@ func (dns *dnsPlugin) ParseUDP(pkt *protos.Packet) {
 		///Bluecat Disable Old Statistic
 		//stats.IncrDNSRequest()
 		dns.receivedDNSRequest(&dnsTuple, dnsMsg)
-
 	}
 }
