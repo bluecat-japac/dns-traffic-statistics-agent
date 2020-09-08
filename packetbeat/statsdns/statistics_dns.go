@@ -226,6 +226,7 @@ func ReceivedMessage(msg *model.Record) {
 	}
 
 	answersCount := msg.DNS.AnswersCount
+	isTruncated := msg.DNS.Flags.TruncatedResponse
 	responseTime := msg.ResponseTime
 	responseCode := msg.DNS.ResponseCode
 	authoritiesCount := msg.DNS.AuthoritiesCount
@@ -250,7 +251,8 @@ func ReceivedMessage(msg *model.Record) {
 
 	debugf("[ReceivedMessage] ID: %s - transp: %s - responseCode: %s - answersCount: %s", msg.DNS.ID,  msg.Transport, responseCode, answersCount)
 	if responseCode == NOERROR && responseStatus == common.OK_STATUS {
-		if answersCount > 0 {
+		debugf("[ReceivedMessage] isTruncated: %s", isTruncated)	
+		if answersCount > 0 || isTruncated {
 			// Successful case
 			IncrDNSStatsSuccessful(clientIP)
 			IncrDNSStatsSuccessfulForPerView(clientIP, metricType)
@@ -802,17 +804,6 @@ func HandleResponseDecodeErr(clientIP, srvIP string, RCodeString string) {
 				IncrDNSStatsOtherRCode(statIP)
 				IncrDNSStatsOtherRCodeForPerView(statIP, CLIENT)
 			}
-		}
-	}
-}
-
-func HandleResponseTruncated(clientIP, srvIP string) {
-	if !utils.IsInternalCall(clientIP, srvIP) {
-		if statIP := CreateCounterMetric(srvIP, clientIP, RESPONSE); statIP != "" {
-			IncrDNSStatsSuccessful(statIP)
-			IncrDNSStatsSuccessfulForPerView(statIP, CLIENT)
-			IncrDNSStatsTotalResponses(statIP)
-			ResponseForPerView(statIP)
 		}
 	}
 }
