@@ -65,10 +65,10 @@ packetbeat.protocols:
   # (additional resource records) is added to messages.
   include_additionals: true
 
-- type: http
-  # Configure the ports where to listen for HTTP traffic. You can disable
-  # the HTTP protocol by commenting out the list of ports.
-  ports: [51415]
+# - type: http
+#   # Configure the ports where to listen for HTTP traffic. You can disable
+#   # the HTTP protocol by commenting out the list of ports.
+#   ports: [51415]
 
 # - type: memcache
 #   # Configure the ports where to listen for memcache traffic. You can disable

@@ -32,6 +32,7 @@ type ConfigStatistics struct {
 	StatisticsInterval           time.Duration `json:"statistics_interval"`
 	MaximumClients               int           `json:"maximum_clients"`
 	UrlAnnouncementDeployFromBam string        `json:"url_announcement_bam_deploy"`
+	StatHTTPServerAddr			 string        `json:"http_server_address"`
 	IntervalClearOutStatisCache  int           `json:"interval_clear_outstatis_cache"`
 }
 
@@ -107,7 +108,7 @@ func ReadACLInNamedConfig() ([]*net.IPNet, []*net.IPNet, []string, []string, map
 			switch {
 			case strings.Contains(line, FORMAT_MATCH_CLIENTS):
 				arrayIPsString := getArrayStringFromLineRecursive(line)
-				logp.Info("Ip Array %v", arrayIPsString)
+				logp.Debug("ReadACLInNamedConfig", "Ip Array %v", arrayIPsString)
 				for _, value := range arrayIPsString {
 					trimedValue := strings.TrimSpace(value)
 					//Normal case
@@ -146,7 +147,7 @@ func ReadACLInNamedConfig() ([]*net.IPNet, []*net.IPNet, []string, []string, map
 }
 
 func CollectMapACL() {
-	logp.Info("Starting collect ACL")
+	logp.Debug("CollectMapACL", "Starting collect ACL")
 	ACLMap = make(map[string][]string, 0)
 	file, err := os.Open(NAMED_CONFIG_PATH)
 	if err == nil {
@@ -165,7 +166,7 @@ func CollectMapACL() {
 	} else {
 		logp.Err("named.conf file doesn't exist: %v", err.Error())
 	}
-	logp.Info("Done collect ACL")
+	logp.Debug("CollectMapACL", "Done collect ACL")
 }
 
 func getIPsInLine(line string) (IPRangesInACL []*net.IPNet, IPsInACL []string) {
