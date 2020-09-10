@@ -746,8 +746,8 @@ func CalculateRecursiveMsg(clientIP, srvIP string, reqID uint16, questions []mkd
 				continue
 			}
 			isSuccess := false
-			//If Successful Recursion
-			if dnsMsg.MsgHdr.Rcode == 0 && len(dnsMsg.Answer) > 0 {
+			//If Successful Recursion or truncate response
+			if (dnsMsg.MsgHdr.Rcode == 0 && len(dnsMsg.Answer) > 0) || dnsMsg.MsgHdr.Truncated {
 				isSuccess = true
 			}
 			recursiveDNS := NewRecursiveDNS(clientIP, isSuccess)
