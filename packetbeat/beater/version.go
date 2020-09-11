@@ -17,5 +17,5 @@ package beater
 
 const (
 	// Version is packetbeat bluecat implement
-	version = "v2.8 (Beat 6.5.4)"
+	Version = "v2.8.0 (Beat 6.5.4)"
 )
