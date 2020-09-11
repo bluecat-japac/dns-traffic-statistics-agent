@@ -68,7 +68,8 @@ Extract the dns-traffic-statistic-agent.tar.gz to a folder in BDDS, then follow 
 | statistics_destination  | http://[IP]:[PORT]/counter [String]  | IP and PORT of SNMP Sub Agent Http Server
 | statistics_interval  | [integer]  | Interval collecting and sending DNS statistics
 | maximum_clients  | [integer]  | maximum number of clients for statistics, 200 clients is required.
-| url_announcement_bam_deploy  | http://[IP]:[PORT]/announcement-deploy-from-bam  |  IP and PORT of SNMP Sub Agent Http Server
+| url_announcement_bam_deploy  | "announcement-deploy-from-bam"  |  URL is called to Packetbeat HTTP server for updating ACL and matched clients for views from named config
+| http_server_address  | [IP]:[PORT]  |  IP and PORT of Packetbeat HTTP Server to listen on announcement deployed from BAM.
 | interval_clear_outstatis_cache  | [integer]  |  Interval In Second for cleaning data cached of data statistics which are sending to SNMP Agent
 
 ## SNMP Subagent installation and usage
@@ -85,11 +86,6 @@ Extract the dns-traffic-statistic-agent.tar.gz to a folder in BDDS, then follow 
 
 2. Configure snmpd.conf. There are 2 options:
 	- Enable and config snmp's information in BAM and deploy to BDDS.
-	- Copy snmpd.conf from dns-snmp-agent/ to /etc/snmpd/ and restart snmp service.
-		Note: Run following cmd to prevent snmpd.conf be overwritten automatically via BAM or when snmpd service is restarted:
-		```
-		/usr/local/bluecat/PsmClient node set manual-override=snmp
-		```
 
 3. Configure Master agent to plugin new sub-agent
 - Before running python dns_stat_agent, need to configuare AGENT_CONFIGURATION in config.py matched host and port in snmpd.conf.

@@ -31,7 +31,6 @@ import (
 
 	"github.com/elastic/beats/packetbeat/procs"
 	"github.com/elastic/beats/packetbeat/protos"
-	"github.com/elastic/beats/packetbeat/statsdns"
 )
 
 var debugf = logp.MakeDebug("http")
@@ -236,12 +235,6 @@ func (http *httpPlugin) Parse(
 	private protos.ProtocolData,
 ) protos.ProtocolData {
 	defer logp.Recover("ParseHttp exception")
-
-	//[Bluecat]
-	//TODO: Capturing packet local HTTP Request For Updating Network Ips Range Of Statistics DNS
-	//logp.Info("Payload Parse: [%s]", pkt.Payload)
-	statsdns.ReceiveHttpRequest(string(pkt.Payload))
-
 	conn := ensureHTTPConnection(private)
 	conn = http.doParse(conn, pkt, tcptuple, dir)
 	if conn == nil {
