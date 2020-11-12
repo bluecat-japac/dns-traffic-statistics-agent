@@ -24,3 +24,7 @@ imports: python-env
 	@mkdir -p include
 	@mkdir -p protos
 	@${PYTHON_ENV}/bin/python ${ES_BEATS}/script/generate_imports.py ${BEAT_PATH}
+
+.PHONY: build
+build: mage
+	@mage GolangCrossBuild
