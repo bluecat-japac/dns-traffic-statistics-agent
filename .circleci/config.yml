@@ -1,9 +1,6 @@
-# Golang CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/language-go/ for more details
 version: 2
 jobs:
-  build:
+  build-packetbeat-binary:
     docker:
       - image: debian:stretch
     environment:
@@ -22,7 +19,7 @@ jobs:
             apt-get install -q -y gcc make gcc-multilib glibc-doc manpages-dev wget git flex byacc
             apt-get update && apt-get install -y --no-install-recommends --allow-unauthenticated \
                   crossbuild-essential-arm64 \
-                  linux-libc-dev-arm64-cross 
+                  linux-libc-dev-arm64-cross
       - run:
           name: Setup Golang environment
           command: |
@@ -66,40 +63,181 @@ jobs:
           command: |
             export GOPATH=/go
             export ARM_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-arm64
-            mkdir -p ~/repo/artifacts/${ARM_FOLDER_NAME}/{packetbeat,backup}
+            mkdir -p ~/repo/artifacts/${ARM_FOLDER_NAME}/{packetbeat/bin,backup}
             cd ~/repo/artifacts/
-            cp $GOPATH/src/github.com/elastic/beats/packetbeat/build/golang-crossbuild/packetbeat-linux-arm64 ./${ARM_FOLDER_NAME}/packetbeat/packetbeat
+            cp $GOPATH/src/github.com/elastic/beats/packetbeat/build/golang-crossbuild/packetbeat-linux-arm64 ./${ARM_FOLDER_NAME}/packetbeat/bin/packetbeat
             cp -rf ~/repo/dns-snmp-agent/ ./${ARM_FOLDER_NAME}/
             cp -rf ~/repo/dns_traffic_deploy.sh ./${ARM_FOLDER_NAME}/
-            tar -czvf ${ARM_FOLDER_NAME}.tar.gz ${ARM_FOLDER_NAME}
+            cp -rf ~/repo/packetbeat/{statistics_config.json,announcement_bam_deploy.py,packetbeat.yml,Dockerfile} ./${ARM_FOLDER_NAME}/packetbeat
       - run:
           name: Prepare AMD64 package to public
           command: |
             export GOPATH=/go
             export AMD_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-amd64
-            mkdir -p ~/repo/artifacts/${AMD_FOLDER_NAME}/{packetbeat,backup}
+            mkdir -p ~/repo/artifacts/${AMD_FOLDER_NAME}/{packetbeat/bin,backup}
             cd ~/repo/artifacts/
-            cp $GOPATH/src/github.com/elastic/beats/packetbeat/build/golang-crossbuild/packetbeat-linux-amd64 ./${AMD_FOLDER_NAME}/packetbeat/packetbeat
+            cp $GOPATH/src/github.com/elastic/beats/packetbeat/build/golang-crossbuild/packetbeat-linux-amd64 ./${AMD_FOLDER_NAME}/packetbeat/bin/packetbeat
             cp -rf ~/repo/dns-snmp-agent/ ./${AMD_FOLDER_NAME}/
             cp -rf ~/repo/dns_traffic_deploy.sh ./${AMD_FOLDER_NAME}/
+            cp -rf ~/repo/packetbeat/{statistics_config.json,announcement_bam_deploy.py,packetbeat.yml,Dockerfile} ./${AMD_FOLDER_NAME}/packetbeat
+      - persist_to_workspace:
+          root: ~/repo
+          paths:
+            - artifacts
+  build-arm-docker-image:
+    machine:
+      image: ubuntu-2004:202101-01
+      resource_class: arm.medium
+    steps:
+      - attach_workspace:
+          at: ~/repo
+      - run:
+          name: Build packetbeat arm image
+          command: |
+            export ARM_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-arm64
+            ls -la ~/repo/artifacts/
+            cd ~/repo/artifacts/${ARM_FOLDER_NAME}/packetbeat
+            ls -la 
+            cat Dockerfile
+            docker build -t dns_packetbeat:${CIRCLE_TAG} .
+      - run:
+          name: Export packetbeat image to tar file
+          command: |
+            export ARM_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-arm64
+            mkdir -p ~/repo/artifacts/${ARM_FOLDER_NAME}/images
+            docker save -o ~/repo/artifacts/${ARM_FOLDER_NAME}/images/dns_packetbeat.tar dns_packetbeat:${CIRCLE_TAG}
+      - run:
+          name: Build dns_stat_agent arm image
+          command: |
+            export ARM_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-arm64
+            ls -la ~/repo/artifacts/
+            ls -la ~/repo/artifacts/${ARM_FOLDER_NAME}
+            cd ~/repo/artifacts/${ARM_FOLDER_NAME}/dns-snmp-agent
+            docker build -t dns_stat_agent:${CIRCLE_TAG} .
+      - run:
+          name: Export dns_stat_agent image to tar file
+          command: |
+            export ARM_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-arm64
+            mkdir -p ~/repo/artifacts/${ARM_FOLDER_NAME}/images
+            docker save -o ~/repo/artifacts/${ARM_FOLDER_NAME}/images/dns_stat_agent.tar dns_stat_agent:${CIRCLE_TAG}
+      - run:
+          name: Check and package
+          command: |
+            export ARM_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-arm64
+            cd ~/repo/artifacts/
+            ls -la ${ARM_FOLDER_NAME}/images
+            tar -czvf ${ARM_FOLDER_NAME}.tar.gz ${ARM_FOLDER_NAME}
+      - run:
+          name: Move to release directory
+          command: |
+            mkdir -p ~/release/packages
+            export ARM_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-arm64
+            cp -rf ~/repo/artifacts/${ARM_FOLDER_NAME}.tar.gz ~/release/packages/
+      - persist_to_workspace:
+          root: ~/release
+          paths:
+            - packages
+  build-amd-docker-image:
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    steps:
+      - setup_remote_docker
+      - attach_workspace:
+          at: ~/repo
+      - run:
+          name: Build packetbeat amd image
+          command: |
+            export AMD_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-amd64
+            ls -la ~/repo/artifacts/
+            cd ~/repo/artifacts/${AMD_FOLDER_NAME}/packetbeat
+            ls -la 
+            cat Dockerfile
+            docker build -t dns_packetbeat:${CIRCLE_TAG} .
+      - run:
+          name: Export packetbeat image to tar file
+          command: |
+            export AMD_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-amd64
+            mkdir -p ~/repo/artifacts/${AMD_FOLDER_NAME}/images
+            docker save -o ~/repo/artifacts/${AMD_FOLDER_NAME}/images/dns_packetbeat.tar dns_packetbeat:${CIRCLE_TAG}
+      - run:
+          name: Build dns_stat_agent amd image
+          command: |
+            export AMD_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-amd64
+            ls -la ~/repo/artifacts/
+            ls -la ~/repo/artifacts/${AMD_FOLDER_NAME}
+            cd ~/repo/artifacts/${AMD_FOLDER_NAME}/dns-snmp-agent
+            docker build -t dns_stat_agent:${CIRCLE_TAG} .
+      - run:
+          name: Export dns_stat_agent image to tar file
+          command: |
+            export AMD_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-amd64
+            mkdir -p ~/repo/artifacts/${AMD_FOLDER_NAME}/images
+            docker save -o ~/repo/artifacts/${AMD_FOLDER_NAME}/images/dns_stat_agent.tar dns_stat_agent:${CIRCLE_TAG}
+      - run:
+          name: Check and package
+          command: |
+            export AMD_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-amd64
+            cd ~/repo/artifacts/
+            ls -la ${AMD_FOLDER_NAME}/images
             tar -czvf ${AMD_FOLDER_NAME}.tar.gz ${AMD_FOLDER_NAME}
+      - run:
+          name: Move to release directory
+          command: |
+            mkdir -p ~/release/packages
+            export AMD_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-amd64
+            cp -rf ~/repo/artifacts/${AMD_FOLDER_NAME}.tar.gz ~/release/packages/
+      - persist_to_workspace:
+          root: ~/release
+          paths:
+            - packages
+  release:
+    docker:
+      - image: cibuilds/github:0.13
+    steps:
+      - attach_workspace:
+          at: ~/release
+      - run:
+          name: Check package before release
+          command: |
+            ls -la ~/release/packages
       - run:
           name: Publish Release on GitHub
           command: |
-            export PATH=/usr/local/go/bin:$PATH
-            export GOPATH=/go
-            ls -la  ~/repo/artifacts
-            go get -u github.com/tcnksm/ghr
+            echo "Release ${CIRCLE_PROJECT_REPONAME}:${CIRCLE_TAG}"
             echo $CIRCLE_PROJECT_USERNAME
             echo $CIRCLE_PROJECT_REPONAME
             echo ${CIRCLE_TAG}
-            $GOPATH/bin/ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ~/repo/artifacts/
-
+            ghr -debug -t ${ACCESS_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ~/release/packages/
 workflows:
   version: 2
-  build-and-deploy:
+  build-and-release:
     jobs:
-      - build:
+      - build-packetbeat-binary:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - build-arm-docker-image:
+          requires:
+            - build-packetbeat-binary
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - build-amd-docker-image:
+          requires:
+            - build-packetbeat-binary
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - release:
+          requires:
+            - build-arm-docker-image
+            - build-amd-docker-image
           filters:
             tags:
               only: /^v.*/
