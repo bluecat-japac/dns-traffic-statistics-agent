@@ -1,0 +1,24 @@
+[Unit]
+Description=Run the DNS Statistic Agent after Docker service enable
+BindsTo=snmp.service
+After=docker.service      snmp.service
+Requires=docker.service
+
+[Service]
+type=simple
+Environment=IMAGE_NAME='dns_stat_agent:<TAG_RELEASE>'                         \
+            NAME='dns_stat_agent'
+ExecStartPre=-/usr/bin/docker stop   $NAME      2> /dev/null || true
+ExecStartPre=-/usr/bin/docker rm     $NAME      2> /dev/null || true
+ExecStart=/usr/bin/docker run --rm \
+                              --network=host --name $NAME                                  \
+                              -v /replicated/jail/named/etc/:/replicated/jail/named/etc/      \
+                              -v /var/agentx/:/var/agentx/                                    \
+                              -v /usr/share/snmp/mibs/:/usr/share/snmp/mibs/                  \
+                              -v /var/lib/snmp/mibs/iana/:/var/lib/snmp/mibs/iana/            \
+                              -v /var/lib/snmp/mibs/ietf/:/var/lib/snmp/mibs/ietf/            \
+                              -v /var/log/dns_stat_agent/:/var/log/dns_stat_agent/            \
+                              $IMAGE_NAME
+ExecStop=-/usr/bin/docker stop  $NAME
+[Install]
+WantedBy=snmp.service
