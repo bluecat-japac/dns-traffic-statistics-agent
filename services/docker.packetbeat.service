@@ -1,0 +1,21 @@
+[Unit]
+Description=Run the PacketBeat after Docker service enable
+After=docker.service  docker.dns_stat_agent.service
+Requires=docker.service  docker.dns_stat_agent.service
+
+[Service]
+type=simple
+Environment=IMAGE_NAME='dns_packetbeat:<TAG_RELEASE>'                       \
+            NAME='dns_packetbeat'
+ExecStartPre=-/usr/bin/docker stop   $NAME      2> /dev/null || true
+ExecStartPre=-/usr/bin/docker rm     $NAME      2> /dev/null || true
+ExecStart=/usr/bin/docker run --rm --cap-add=NET_ADMIN                                                      \
+                              --network=host                                                            \
+                              --name $NAME                                                              \
+                              -v /replicated/jail/named/etc/:/replicated/jail/named/etc/                \
+                              -v /var/log/packetbeat/:/var/log/packetbeat/                              \
+                              $IMAGE_NAME
+ExecStop=-/usr/bin/docker stop   $NAME
+
+[Install]
+WantedBy=docker.dns_stat_agent.service

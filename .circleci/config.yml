@@ -68,6 +68,8 @@ jobs:
             cp $GOPATH/src/github.com/elastic/beats/packetbeat/build/golang-crossbuild/packetbeat-linux-arm64 ./${ARM_FOLDER_NAME}/packetbeat/bin/packetbeat
             cp -rf ~/repo/dns-snmp-agent/ ./${ARM_FOLDER_NAME}/
             cp -rf ~/repo/dns_traffic_deploy.sh ./${ARM_FOLDER_NAME}/
+            cp -rf ~/repo/services ./${ARM_FOLDER_NAME}/
+            sed -i 's/<TAG_RELEASE>/'${CIRCLE_TAG}'/g' ./${ARM_FOLDER_NAME}/services/*
             cp -rf ~/repo/packetbeat/{statistics_config.json,announcement_bam_deploy.py,packetbeat.yml,Dockerfile} ./${ARM_FOLDER_NAME}/packetbeat
       - run:
           name: Prepare AMD64 package to public
@@ -79,6 +81,8 @@ jobs:
             cp $GOPATH/src/github.com/elastic/beats/packetbeat/build/golang-crossbuild/packetbeat-linux-amd64 ./${AMD_FOLDER_NAME}/packetbeat/bin/packetbeat
             cp -rf ~/repo/dns-snmp-agent/ ./${AMD_FOLDER_NAME}/
             cp -rf ~/repo/dns_traffic_deploy.sh ./${AMD_FOLDER_NAME}/
+            cp -rf ~/repo/services ./${AMD_FOLDER_NAME}/
+            sed -i 's/<TAG_RELEASE>/'${CIRCLE_TAG}'/g' ./${AMD_FOLDER_NAME}/services/*
             cp -rf ~/repo/packetbeat/{statistics_config.json,announcement_bam_deploy.py,packetbeat.yml,Dockerfile} ./${AMD_FOLDER_NAME}/packetbeat
       - persist_to_workspace:
           root: ~/repo
