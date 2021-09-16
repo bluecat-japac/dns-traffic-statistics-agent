@@ -272,16 +272,28 @@ class AgentServer(BaseHTTPRequestHandler):
             if stat_type == StatisticPerType.BIND_VIEW:
                 bind_view = ip_or_view
                 dns_query_type_id = QryType.METRIC_FOR_BIND_VIEW[dns_query_type]
-                metric_row = table["table"].addRow(
-                    [AGENT.DisplayString(bind_view), AGENT.Integer32(dns_query_type_id)])
-                metric_row.setRowCell(1, AGENT.DisplayString(bind_view))
-                metric_row.setRowCell(
-                    2, AGENT.Integer32(dns_query_type_id))
+                row_index = "{}|{}|{}".format(stat_type, ip_or_view, dns_query_type_id)
+                if row_index in ROW_DICT:
+                    metric_row = ROW_DICT[row_index]
+                else:
+                    metric_row = table["table"].addRow(
+                        [AGENT.DisplayString(bind_view), AGENT.Integer32(dns_query_type_id)])
+                    metric_row.setRowCell(1, AGENT.DisplayString(bind_view))
+                    metric_row.setRowCell(
+                        2, AGENT.Integer32(dns_query_type_id))
+                    ROW_DICT.update({row_index: metric_row})
                 metric_row.setRowCell(3, AGENT.Counter64(value))
             elif is_time_query_type: #if dns_query_type == QryType.METRIC_AVG_TIME
-                avg_time_row = table["table"].addRow(
-                    [AGENT.OctetString(ip_or_view)])
-                avg_time_row.setRowCell(1, AGENT.OctetString(ip_or_view))
+                dns_query_type_id = "metric-avg-time"
+                row_index = "{}|{}|{}".format(stat_type, ip_or_view, dns_query_type_id)
+                if row_index in ROW_DICT:
+                    avg_time_row = ROW_DICT[row_index]
+                else:
+                    avg_time_row = table["table"].addRow(
+                        [AGENT.OctetString(ip_or_view)])
+                    avg_time_row.setRowCell(1, AGENT.OctetString(ip_or_view))
+                    ROW_DICT.update({row_index: avg_time_row})
+
                 avg_time_row.setRowCell(
                     2, AGENT.Integer32(mili_to_micro(value)))
             else:
@@ -321,12 +333,7 @@ class AgentServer(BaseHTTPRequestHandler):
                 ...]]
         """
         global MIB_TABLE
-        # Clear up 3 tables of avgTime and table of statistic views from bind
-        MIB_TABLE[TableOidStr.AVG_TIME_PER_CLIENT]["table"].clear()
-        MIB_TABLE[TableOidStr.AVG_TIME_PER_SERVER]["table"].clear()
-        MIB_TABLE[TableOidStr.AVG_TIME_PER_VIEW]["table"].clear()
-        MIB_TABLE[TableOidStr.BIND_STAT_PER_VIEW]["table"].clear()
-
+        
         # Sync-up with data in mib
         MIB_TABLE[TableOidStr.STAT_PER_CLIENT]["table_value"] = MIB_TABLE[TableOidStr.STAT_PER_CLIENT]["table"].value()
         MIB_TABLE[TableOidStr.STAT_PER_SERVER]["table_value"] = MIB_TABLE[TableOidStr.STAT_PER_SERVER]["table"].value()
