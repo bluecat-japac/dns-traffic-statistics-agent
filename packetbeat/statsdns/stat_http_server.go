@@ -23,7 +23,7 @@ import (
 
 func reqAnnouncementDeployFromBam(w http.ResponseWriter, req *http.Request) {
 	logp.Debug("HTTP server", "Receive AnnouncementDeployFromBam request")
-	ReloadNamedData()
+	ReloadNamedData(true)
 }
 
 func onLoadHTTPServer() {

@@ -116,7 +116,7 @@ func InitStatisticsDNS() {
 	// Get data from statistics_config.json
 	GetConfigDNSStatistics()
 	// Update ACL client, server and MapViewIPs
-	ReloadNamedData()
+	ReloadNamedData(false)
 	// Start HTTP server
 	go onLoadHTTPServer()
 	// Create chan for management Statistic DNS counter
@@ -682,7 +682,7 @@ func GetConfigDNSStatistics() {
 	UrlAnnouncementDeployFromBam = config_statistics.ConfigStat.UrlAnnouncementDeployFromBam
 }
 
-func ReloadNamedData() {
+func ReloadNamedData(isInit bool) {
 	//Read named.conf get ACL Ips Range
 	IPServerRangesInACL, IPClientRangesInACL, IPsServerInACL, IPsClientInACL, MapViewIPsInMatchClients := config_statistics.ReadACLInNamedConfig()
 
@@ -697,6 +697,10 @@ func ReloadNamedData() {
 	logp.Info("IP In ACL Server: %v", IpsServer)
 	logp.Info("IPs In ACL Client: %v", IpsClient)
 	logp.Info("Map View Client IPs %v", MapViewIPs)
+
+	if isInit == true {
+		CreateCounterMetricPerView(MapViewIPs)
+	}
 }
 
 // Store all request messages into the corresponding map for Incoming messages and Outgoing messages
