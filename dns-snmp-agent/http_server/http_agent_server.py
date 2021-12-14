@@ -274,6 +274,8 @@ class AgentServer(BaseHTTPRequestHandler):
                 dns_query_type_id = QryType.METRIC_FOR_BIND_VIEW[dns_query_type]
                 row_index = "{}|{}|{}".format(stat_type, ip_or_view, dns_query_type_id)
                 if row_index in ROW_DICT:
+                    if value == 0:  # if already has this row, do not reset
+                        return
                     metric_row = ROW_DICT[row_index]
                 else:
                     metric_row = table["table"].addRow(
@@ -287,6 +289,8 @@ class AgentServer(BaseHTTPRequestHandler):
                 dns_query_type_id = "metric-avg-time"
                 row_index = "{}|{}|{}".format(stat_type, ip_or_view, dns_query_type_id)
                 if row_index in ROW_DICT:
+                    if value == 0:  # if already has this row, do not reset
+                        return
                     avg_time_row = ROW_DICT[row_index]
                 else:
                     avg_time_row = table["table"].addRow(
