@@ -245,3 +245,15 @@ Extract the dns-traffic-statistic-agent.tar.gz to a folder in BDDS, then follow 
     - snmp agent create table entries with all statistics equal to zero
 - the ACL contains only networks:
     - there are no SNMP OIDs be created.
+
+### Trouble Shooting
+
+*To use DNS Traffic Statistics Agent, the user must configure DNS Deployment Options on BAM*
+
+| Option             | Value                       | Priority  |
+|--------------------|-----------------------------|-----------|
+| Allow Recursion    | IP address, Network or any  | Optional  |
+| Match Clients      | IP address, Network or any  | Mandatory |
+| Allow Query        | IP address, Network or any  | Mandatory |
+| Forwarding Policy  | only                        | Optional  |
+| Forwarding         | IP adress server forwarding | Optional  |
