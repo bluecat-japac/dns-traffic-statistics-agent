@@ -192,9 +192,13 @@ def get_stats_view_after_deploy(dns_view):
 def clean_all_table_agent():
     global ROW_DICT
     ROW_DICT = {}
+    MIB_TABLE[TableOidStr.AVG_TIME_PER_CLIENT]["table"].clear()
     MIB_TABLE[TableOidStr.STAT_PER_CLIENT]["table"].clear()
+    MIB_TABLE[TableOidStr.AVG_TIME_PER_SERVER]["table"].clear()
     MIB_TABLE[TableOidStr.STAT_PER_SERVER]["table"].clear()
+    MIB_TABLE[TableOidStr.AVG_TIME_PER_VIEW]["table"].clear()
     MIB_TABLE[TableOidStr.STAT_PER_VIEW]["table"].clear()
+    MIB_TABLE[TableOidStr.BIND_STAT_PER_VIEW]["table"].clear()
     
 
 def reformat_pb_content(pb_request_content):
