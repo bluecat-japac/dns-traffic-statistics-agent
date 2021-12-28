@@ -105,6 +105,13 @@ jobs:
             cat Dockerfile
             docker build -t dns_packetbeat:${CIRCLE_TAG} .
       - run:
+          name: Support build cleaned images
+          command: |
+            cd ~/repo/artifacts/${ARM_FOLDER_NAME}/packetbeat
+            sed -i -e 's/<tag>/${CIRCLE_TAG}/g' cleaned.Dockerfile
+            docker build --build-arg IMAGE=dns_packetbeat:${CIRCLE_TAG} --tag=cleaned_dns_packetbeat:${CIRCLE_TAG} -f cleaned.Dockerfile .
+            docker tag cleaned_dns_packetbeat:${CIRCLE_TAG} dns_packetbeat:${CIRCLE_TAG}
+      - run:
           name: Export packetbeat image to tar file
           command: |
             export ARM_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-arm64
@@ -118,6 +125,13 @@ jobs:
             ls -la ~/repo/artifacts/${ARM_FOLDER_NAME}
             cd ~/repo/artifacts/${ARM_FOLDER_NAME}/dns-snmp-agent
             docker build -t dns_stat_agent:${CIRCLE_TAG} .
+      - run:
+          name: Support build cleaned dns_stat_agent images
+          command: |
+            cd ~/repo/artifacts/${ARM_FOLDER_NAME}/dns-snmp-agent
+            sed -i -e 's/<tag>/${CIRCLE_TAG}/g' cleaned.Dockerfile
+            docker build --build-arg IMAGE=dns_stat_agent:${CIRCLE_TAG} --tag=cleaned_dns_stat_agent:${CIRCLE_TAG} -f cleaned.Dockerfile .
+            docker tag cleaned_dns_stat_agent:${CIRCLE_TAG} dns_stat_agent:${CIRCLE_TAG}
       - run:
           name: Export dns_stat_agent image to tar file
           command: |
