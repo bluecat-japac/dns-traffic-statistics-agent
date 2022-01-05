@@ -53,6 +53,7 @@ jobs:
             go get -t -d -v ./...
             echo "Test mage"
             mage
+            ls
             echo "Build ARM architecture binary"
             GOLANG_CROSSBUILD=1 CGO_ENABLED=1 PLATFORM_ID=linux-arm64 CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++ GOOS=linux GOARCH=arm64 make build
             echo "Build AMD architecture binary"
