@@ -251,12 +251,22 @@ func ReceivedMessage(msg *model.Record) {
 	}()
 
 	// Increase TotalResponse
-	IncrDNSStatsTotalResponses(clientIP)
-	ResponseForPerView(clientIP)
+    IncrDNSStatsTotalResponses(clientIP)
+    if !utils.IsLocalIP(clientIP) {
+        if viewName := FindClientInView(clientIP); viewName != "" {
+            if StatSrv.StatsMap[viewName].DNSMetrics.Recursive > 0 {
+                if metricType == AUTHSERVER {
+                    IncrDNSStatsTotalResponses(viewName)
+                }
+            } else {
+                IncrDNSStatsTotalResponses(viewName)
+            }
+        }
+    }
 
 	debugf("[ReceivedMessage] ID: %s - transp: %s - responseCode: %s - answersCount: %s", msg.DNS.ID,  msg.Transport, responseCode, answersCount)
 	if responseCode == NOERROR && responseStatus == common.OK_STATUS {
-		debugf("[ReceivedMessage] isTruncated: %s", isTruncated)	
+		debugf("[ReceivedMessage] isTruncated: %s", isTruncated)
 		if answersCount > 0 || isTruncated {
 			// Successful case
 			IncrDNSStatsSuccessful(clientIP)
