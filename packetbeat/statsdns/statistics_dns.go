@@ -251,15 +251,17 @@ func ReceivedMessage(msg *model.Record) {
 	}()
 
 	// Increase TotalResponse
-    IncrDNSStatsTotalResponses(clientIP)
+	IncrDNSStatsTotalResponses(clientIP)
     if !utils.IsLocalIP(clientIP) {
         if viewName := FindClientInView(clientIP); viewName != "" {
             if StatSrv.StatsMap[viewName].DNSMetrics.Recursive > 0 {
-                if metricType == AUTHSERVER {
+                if metricType == AUTHSERVER && responseCode != SERVFAIL {
                     IncrDNSStatsTotalResponses(viewName)
                 }
             } else {
-                IncrDNSStatsTotalResponses(viewName)
+                if StatSrv.StatsMap[viewName].DNSMetrics.TotalQueries > 0 {
+					IncrDNSStatsTotalResponses(viewName)
+				}
             }
         }
     }
