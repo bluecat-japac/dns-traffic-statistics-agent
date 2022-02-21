@@ -193,7 +193,7 @@ def main():
     ###
     #	Start agent
     ###
-    version = "v2.8.9"
+    version = "v2.9.0"
     logger.info("Start DNS Statistic Agent verion {}".format(version))
     http_proccess = None
     try:
