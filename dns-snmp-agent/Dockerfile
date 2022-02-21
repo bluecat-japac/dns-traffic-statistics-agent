@@ -1,13 +1,11 @@
 FROM ubuntu:20.04
-ARG DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && \
-    apt-get install snmpd python curl software-properties-common -y && \
-    rm -rf /var/lib/apt/lists/* && \
-    apt-add-repository -y universe && \
+RUN apt-add-repository -y universe && \
     apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install snmpd python curl software-properties-common -y && \
     curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py && \
-    python get-pip.py
+    python get-pip.py && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY . /opt/dns-snmp-agent/
 
