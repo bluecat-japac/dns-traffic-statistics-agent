@@ -1,8 +1,8 @@
 FROM ubuntu:20.04
 
-RUN apt-add-repository -y universe && \
-    apt-get update && \
+RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install snmpd python curl software-properties-common -y && \
+    apt-add-repository -y universe && \
     curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py && \
     python get-pip.py && \
     rm -rf /var/lib/apt/lists/*
