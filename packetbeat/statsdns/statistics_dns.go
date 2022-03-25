@@ -252,18 +252,8 @@ func ReceivedMessage(msg *model.Record) {
 
 	// Increase TotalResponse
 	IncrDNSStatsTotalResponses(clientIP)
-    if !utils.IsLocalIP(clientIP) {
-        if viewName := FindClientInView(clientIP); viewName != "" {
-            if StatSrv.StatsMap[viewName].DNSMetrics.Recursive > 0 {
-                if metricType == AUTHSERVER && responseCode != SERVFAIL {
-                    IncrDNSStatsTotalResponses(viewName)
-                }
-            } else {
-                if StatSrv.StatsMap[viewName].DNSMetrics.TotalQueries > 0 {
-					IncrDNSStatsTotalResponses(viewName)
-				}
-            }
-        }
+	if metricType != AUTHSERVER {
+        ResponseForPerView(clientIP)
     }
 
 	debugf("[ReceivedMessage] ID: %s - transp: %s - responseCode: %s - answersCount: %s", msg.DNS.ID,  msg.Transport, responseCode, answersCount)
