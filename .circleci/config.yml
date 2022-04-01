@@ -184,6 +184,8 @@ jobs:
             ls -la ~/repo/artifacts/${ARM_FOLDER_NAME}
             cd ~/repo/artifacts/${ARM_FOLDER_NAME}/dns-snmp-agent
             docker build -t dns_stat_agent:${CIRCLE_TAG} .
+            sed -i 's/127.0.0.1/'::1'/g' config.py
+            docker build -t dns_stat_agent_ipv6:${CIRCLE_TAG} .
       - run:
           name: Support build cleaned dns_stat_agent images
           command: |
@@ -192,12 +194,16 @@ jobs:
             sed -i -e 's/<tag>/${CIRCLE_TAG}/g' cleaned.Dockerfile
             docker build --build-arg IMAGE=dns_stat_agent:${CIRCLE_TAG} --tag=cleaned_dns_stat_agent:${CIRCLE_TAG} -f cleaned.Dockerfile .
             docker tag cleaned_dns_stat_agent:${CIRCLE_TAG} dns_stat_agent:${CIRCLE_TAG}
+            sed -i -e 's/dns_stat_agent/dns_stat_agent_ipv6/g' cleaned.Dockerfile
+            docker build --build-arg IMAGE=dns_stat_agent_ipv6:${CIRCLE_TAG} --tag=cleaned_dns_stat_agent_ipv6:${CIRCLE_TAG} -f cleaned.Dockerfile .
+            docker tag cleaned_dns_stat_agent_ipv6:${CIRCLE_TAG} dns_stat_agent_ipv6:${CIRCLE_TAG}
       - run:
           name: Export dns_stat_agent image to tar file
           command: |
             export ARM_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-arm64
             mkdir -p ~/repo/artifacts/${ARM_FOLDER_NAME}/images
             docker save -o ~/repo/artifacts/${ARM_FOLDER_NAME}/images/dns_stat_agent.tar dns_stat_agent:${CIRCLE_TAG}
+            docker save -o ~/repo/artifacts/${ARM_FOLDER_NAME}/images/dns_stat_agent_ipv6.tar dns_stat_agent_ipv6:${CIRCLE_TAG}
       - run:
           name: Check and package
           command: |
@@ -231,6 +237,10 @@ jobs:
             ls -la 
             cat Dockerfile
             docker build -t dns_packetbeat:${CIRCLE_TAG} .
+            mv bin/packetbeat-ipv6 bin/packetbeat
+            sed -i 's/127.0.0.1/'::1'/g' announcement_bam_deploy.py
+            sed -i 's/127.0.0.1/'[::1]'/g' statistics_config.json
+            docker build -t dns_packetbeat_ipv6:${CIRCLE_TAG} .
       - run:
           name: Support build cleaned images
           command: |
@@ -239,12 +249,16 @@ jobs:
             sed -i -e 's/<tag>/${CIRCLE_TAG}/g' cleaned.Dockerfile
             docker build --build-arg IMAGE=dns_packetbeat:${CIRCLE_TAG} --tag=cleaned_dns_packetbeat:${CIRCLE_TAG} -f cleaned.Dockerfile .
             docker tag cleaned_dns_packetbeat:${CIRCLE_TAG} dns_packetbeat:${CIRCLE_TAG}
+            sed -i -e 's/dns_packetbeat/dns_packetbeat_ipv6/g' cleaned.Dockerfile
+            docker build --build-arg IMAGE=dns_packetbeat_ipv6:${CIRCLE_TAG} --tag=cleaned_dns_packetbeat_ipv6:${CIRCLE_TAG} -f cleaned.Dockerfile .
+            docker tag cleaned_dns_packetbeat_ipv6:${CIRCLE_TAG} dns_packetbeat_ipv6:${CIRCLE_TAG}
       - run:
           name: Export packetbeat image to tar file
           command: |
             export AMD_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-amd64
             mkdir -p ~/repo/artifacts/${AMD_FOLDER_NAME}/images
             docker save -o ~/repo/artifacts/${AMD_FOLDER_NAME}/images/dns_packetbeat.tar dns_packetbeat:${CIRCLE_TAG}
+            docker save -o ~/repo/artifacts/${AMD_FOLDER_NAME}/images/dns_packetbeat_ipv6.tar dns_packetbeat_ipv6:${CIRCLE_TAG}
       - run:
           name: Build dns_stat_agent amd image
           command: |
@@ -253,6 +267,8 @@ jobs:
             ls -la ~/repo/artifacts/${AMD_FOLDER_NAME}
             cd ~/repo/artifacts/${AMD_FOLDER_NAME}/dns-snmp-agent
             docker build -t dns_stat_agent:${CIRCLE_TAG} .
+            sed -i 's/127.0.0.1/'::1'/g' config.py
+            docker build -t dns_stat_agent_ipv6:${CIRCLE_TAG} .
       - run:
           name: Support build cleaned dns_stat_agent images
           command: |
@@ -261,12 +277,16 @@ jobs:
             sed -i -e 's/<tag>/${CIRCLE_TAG}/g' cleaned.Dockerfile
             docker build --build-arg IMAGE=dns_stat_agent:${CIRCLE_TAG} --tag=cleaned_dns_stat_agent:${CIRCLE_TAG} -f cleaned.Dockerfile .
             docker tag cleaned_dns_stat_agent:${CIRCLE_TAG} dns_stat_agent:${CIRCLE_TAG}
+            sed -i -e 's/dns_stat_agent/dns_stat_agent_ipv6/g' cleaned.Dockerfile
+            docker build --build-arg IMAGE=dns_stat_agent_ipv6:${CIRCLE_TAG} --tag=cleaned_dns_stat_agent_ipv6:${CIRCLE_TAG} -f cleaned.Dockerfile .
+            docker tag cleaned_dns_stat_agent_ipv6:${CIRCLE_TAG} dns_stat_agent_ipv6:${CIRCLE_TAG}
       - run:
           name: Export dns_stat_agent image to tar file
           command: |
             export AMD_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-amd64
             mkdir -p ~/repo/artifacts/${AMD_FOLDER_NAME}/images
             docker save -o ~/repo/artifacts/${AMD_FOLDER_NAME}/images/dns_stat_agent.tar dns_stat_agent:${CIRCLE_TAG}
+            docker save -o ~/repo/artifacts/${AMD_FOLDER_NAME}/images/dns_stat_agent_ipv6.tar dns_stat_agent_ipv6:${CIRCLE_TAG}
       - run:
           name: Check and package
           command: |
