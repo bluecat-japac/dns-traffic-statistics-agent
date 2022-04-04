@@ -66,55 +66,6 @@ jobs:
             mkdir -p ~/repo/artifacts/${ARM_FOLDER_NAME}/{packetbeat/bin,backup}
             cd ~/repo/artifacts/
             cp $GOPATH/src/github.com/elastic/beats/packetbeat/build/golang-crossbuild/packetbeat-linux-arm64 ./${ARM_FOLDER_NAME}/packetbeat/bin/packetbeat
-#            cp -rf ~/repo/dns-snmp-agent/ ./${ARM_FOLDER_NAME}/
-#            cp -rf ~/repo/dns_traffic_deploy.sh ./${ARM_FOLDER_NAME}/
-#            cp -rf ~/repo/services ./${ARM_FOLDER_NAME}/
-#            sed -i 's/<TAG_RELEASE>/'${CIRCLE_TAG}'/g' ./${ARM_FOLDER_NAME}/services/*
-#            cp -rf ~/repo/packetbeat/{statistics_config.json,announcement_bam_deploy.py,packetbeat.yml,Dockerfile,cleaned.Dockerfile} ./${ARM_FOLDER_NAME}/packetbeat
-      - run:
-          name: Prepare AMD64 package to public
-          command: |
-            export GOPATH=/go
-            export AMD_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-amd64
-            mkdir -p ~/repo/artifacts/${AMD_FOLDER_NAME}/{packetbeat/bin,backup}
-            cd ~/repo/artifacts/
-            cp $GOPATH/src/github.com/elastic/beats/packetbeat/build/golang-crossbuild/packetbeat-linux-amd64 ./${AMD_FOLDER_NAME}/packetbeat/bin/packetbeat
-#            cp -rf ~/repo/dns-snmp-agent/ ./${AMD_FOLDER_NAME}/
-#            cp -rf ~/repo/dns_traffic_deploy.sh ./${AMD_FOLDER_NAME}/
-#            cp -rf ~/repo/services ./${AMD_FOLDER_NAME}/
-#            sed -i 's/<TAG_RELEASE>/'${CIRCLE_TAG}'/g' ./${AMD_FOLDER_NAME}/services/*
-#            cp -rf ~/repo/packetbeat/{statistics_config.json,announcement_bam_deploy.py,packetbeat.yml,Dockerfile,cleaned.Dockerfile} ./${AMD_FOLDER_NAME}/packetbeat
-      - run:
-          name: Build packetbeat for IPv6
-          command: |
-            export GOPATH=/go
-            export PATH=/usr/local/go/bin:$GOPATH/bin:$PATH
-            go version
-            go env
-            cd $GOPATH/src
-            go install github.com/elastic/beats/vendor/github.com/magefile/mage
-            cd $GOPATH/src/github.com/elastic/beats/packetbeat
-            echo "Remove old gopacket"
-            rm -rf $GOPATH/src/github.com/elastic/beats/vendor/github.com/tsg
-            go get -t -d -v ./...
-            echo "Test mage"
-            mage
-            ls
-            echo "Build packetbeat binary for ipv6"
-            sed -i 's/127.0.0.1/'::1'/g' announcement_bam_deploy.py
-            sed -i 's/127.0.0.1/'[::1]'/g' statistics_config.json 
-            GOLANG_CROSSBUILD=1 CGO_ENABLED=1 PLATFORM_ID=linux-arm64 CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++ GOOS=linux GOARCH=arm64 make build
-            GOLANG_CROSSBUILD=1 CGO_ENABLED=1 CC=gcc CXX=g++ GOARCH=amd64 GOARM= GOOS=linux PLATFORM_ID=linux-amd64 make build
-            ls -la $GOPATH/src/github.com/elastic/beats/packetbeat/build/golang-crossbuild
-      - run:
-          name: Prepare ARM package IPv6 to public
-          command: |
-            export GOPATH=/go
-            export ARM_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-arm64
-            mkdir -p ~/repo/artifacts/${ARM_FOLDER_NAME}/{packetbeat/bin,backup}
-            cd ~/repo/artifacts/
-            cp $GOPATH/src/github.com/elastic/beats/packetbeat/build/golang-crossbuild/packetbeat-linux-arm64 ./${ARM_FOLDER_NAME}/packetbeat/bin/packetbeat-ipv6
-            ls ./${ARM_FOLDER_NAME}/packetbeat/
             cp -rf ~/repo/dns-snmp-agent/ ./${ARM_FOLDER_NAME}/
             cp -rf ~/repo/dns_traffic_deploy.sh ./${ARM_FOLDER_NAME}/
             cp -rf ~/repo/services ./${ARM_FOLDER_NAME}/
@@ -127,8 +78,7 @@ jobs:
             export AMD_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-amd64
             mkdir -p ~/repo/artifacts/${AMD_FOLDER_NAME}/{packetbeat/bin,backup}
             cd ~/repo/artifacts/
-            cp $GOPATH/src/github.com/elastic/beats/packetbeat/build/golang-crossbuild/packetbeat-linux-amd64 ./${AMD_FOLDER_NAME}/packetbeat/bin/packetbeat-ipv6
-            ls ./${AMD_FOLDER_NAME}/packetbeat/bin/
+            cp $GOPATH/src/github.com/elastic/beats/packetbeat/build/golang-crossbuild/packetbeat-linux-amd64 ./${AMD_FOLDER_NAME}/packetbeat/bin/packetbeat
             cp -rf ~/repo/dns-snmp-agent/ ./${AMD_FOLDER_NAME}/
             cp -rf ~/repo/dns_traffic_deploy.sh ./${AMD_FOLDER_NAME}/
             cp -rf ~/repo/services ./${AMD_FOLDER_NAME}/
@@ -154,10 +104,6 @@ jobs:
             ls -la 
             cat Dockerfile
             docker build -t dns_packetbeat:${CIRCLE_TAG} .
-            mv bin/packetbeat-ipv6 bin/packetbeat
-            sed -i 's/127.0.0.1/'::1'/g' announcement_bam_deploy.py
-            sed -i 's/127.0.0.1/'[::1]'/g' statistics_config.json
-            docker build -t dns_packetbeat_ipv6:${CIRCLE_TAG} .
       - run:
           name: Support build cleaned images
           command: |
@@ -166,16 +112,12 @@ jobs:
             sed -i -e 's/<tag>/${CIRCLE_TAG}/g' cleaned.Dockerfile
             docker build --build-arg IMAGE=dns_packetbeat:${CIRCLE_TAG} --tag=cleaned_dns_packetbeat:${CIRCLE_TAG} -f cleaned.Dockerfile .
             docker tag cleaned_dns_packetbeat:${CIRCLE_TAG} dns_packetbeat:${CIRCLE_TAG}
-            sed -i -e 's/dns_packetbeat/dns_packetbeat_ipv6/g' cleaned.Dockerfile
-            docker build --build-arg IMAGE=dns_packetbeat_ipv6:${CIRCLE_TAG} --tag=cleaned_dns_packetbeat_ipv6:${CIRCLE_TAG} -f cleaned.Dockerfile .
-            docker tag cleaned_dns_packetbeat_ipv6:${CIRCLE_TAG} dns_packetbeat_ipv6:${CIRCLE_TAG}
       - run:
           name: Export packetbeat image to tar file
           command: |
             export ARM_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-arm64
             mkdir -p ~/repo/artifacts/${ARM_FOLDER_NAME}/images
             docker save -o ~/repo/artifacts/${ARM_FOLDER_NAME}/images/dns_packetbeat.tar dns_packetbeat:${CIRCLE_TAG}
-            docker save -o ~/repo/artifacts/${ARM_FOLDER_NAME}/images/dns_packetbeat_ipv6.tar dns_packetbeat_ipv6:${CIRCLE_TAG}
       - run:
           name: Build dns_stat_agent arm image
           command: |
@@ -184,8 +126,6 @@ jobs:
             ls -la ~/repo/artifacts/${ARM_FOLDER_NAME}
             cd ~/repo/artifacts/${ARM_FOLDER_NAME}/dns-snmp-agent
             docker build -t dns_stat_agent:${CIRCLE_TAG} .
-            sed -i 's/127.0.0.1/'::1'/g' config.py
-            docker build -t dns_stat_agent_ipv6:${CIRCLE_TAG} .
       - run:
           name: Support build cleaned dns_stat_agent images
           command: |
@@ -194,16 +134,12 @@ jobs:
             sed -i -e 's/<tag>/${CIRCLE_TAG}/g' cleaned.Dockerfile
             docker build --build-arg IMAGE=dns_stat_agent:${CIRCLE_TAG} --tag=cleaned_dns_stat_agent:${CIRCLE_TAG} -f cleaned.Dockerfile .
             docker tag cleaned_dns_stat_agent:${CIRCLE_TAG} dns_stat_agent:${CIRCLE_TAG}
-            sed -i -e 's/dns_stat_agent/dns_stat_agent_ipv6/g' cleaned.Dockerfile
-            docker build --build-arg IMAGE=dns_stat_agent_ipv6:${CIRCLE_TAG} --tag=cleaned_dns_stat_agent_ipv6:${CIRCLE_TAG} -f cleaned.Dockerfile .
-            docker tag cleaned_dns_stat_agent_ipv6:${CIRCLE_TAG} dns_stat_agent_ipv6:${CIRCLE_TAG}
       - run:
           name: Export dns_stat_agent image to tar file
           command: |
             export ARM_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-arm64
             mkdir -p ~/repo/artifacts/${ARM_FOLDER_NAME}/images
             docker save -o ~/repo/artifacts/${ARM_FOLDER_NAME}/images/dns_stat_agent.tar dns_stat_agent:${CIRCLE_TAG}
-            docker save -o ~/repo/artifacts/${ARM_FOLDER_NAME}/images/dns_stat_agent_ipv6.tar dns_stat_agent_ipv6:${CIRCLE_TAG}
       - run:
           name: Check and package
           command: |
@@ -237,10 +173,6 @@ jobs:
             ls -la 
             cat Dockerfile
             docker build -t dns_packetbeat:${CIRCLE_TAG} .
-            mv bin/packetbeat-ipv6 bin/packetbeat
-            sed -i 's/127.0.0.1/'::1'/g' announcement_bam_deploy.py
-            sed -i 's/127.0.0.1/'[::1]'/g' statistics_config.json
-            docker build -t dns_packetbeat_ipv6:${CIRCLE_TAG} .
       - run:
           name: Support build cleaned images
           command: |
@@ -249,16 +181,12 @@ jobs:
             sed -i -e 's/<tag>/${CIRCLE_TAG}/g' cleaned.Dockerfile
             docker build --build-arg IMAGE=dns_packetbeat:${CIRCLE_TAG} --tag=cleaned_dns_packetbeat:${CIRCLE_TAG} -f cleaned.Dockerfile .
             docker tag cleaned_dns_packetbeat:${CIRCLE_TAG} dns_packetbeat:${CIRCLE_TAG}
-            sed -i -e 's/dns_packetbeat/dns_packetbeat_ipv6/g' cleaned.Dockerfile
-            docker build --build-arg IMAGE=dns_packetbeat_ipv6:${CIRCLE_TAG} --tag=cleaned_dns_packetbeat_ipv6:${CIRCLE_TAG} -f cleaned.Dockerfile .
-            docker tag cleaned_dns_packetbeat_ipv6:${CIRCLE_TAG} dns_packetbeat_ipv6:${CIRCLE_TAG}
       - run:
           name: Export packetbeat image to tar file
           command: |
             export AMD_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-amd64
             mkdir -p ~/repo/artifacts/${AMD_FOLDER_NAME}/images
             docker save -o ~/repo/artifacts/${AMD_FOLDER_NAME}/images/dns_packetbeat.tar dns_packetbeat:${CIRCLE_TAG}
-            docker save -o ~/repo/artifacts/${AMD_FOLDER_NAME}/images/dns_packetbeat_ipv6.tar dns_packetbeat_ipv6:${CIRCLE_TAG}
       - run:
           name: Build dns_stat_agent amd image
           command: |
@@ -267,8 +195,6 @@ jobs:
             ls -la ~/repo/artifacts/${AMD_FOLDER_NAME}
             cd ~/repo/artifacts/${AMD_FOLDER_NAME}/dns-snmp-agent
             docker build -t dns_stat_agent:${CIRCLE_TAG} .
-            sed -i 's/127.0.0.1/'::1'/g' config.py
-            docker build -t dns_stat_agent_ipv6:${CIRCLE_TAG} .
       - run:
           name: Support build cleaned dns_stat_agent images
           command: |
@@ -277,16 +203,12 @@ jobs:
             sed -i -e 's/<tag>/${CIRCLE_TAG}/g' cleaned.Dockerfile
             docker build --build-arg IMAGE=dns_stat_agent:${CIRCLE_TAG} --tag=cleaned_dns_stat_agent:${CIRCLE_TAG} -f cleaned.Dockerfile .
             docker tag cleaned_dns_stat_agent:${CIRCLE_TAG} dns_stat_agent:${CIRCLE_TAG}
-            sed -i -e 's/dns_stat_agent/dns_stat_agent_ipv6/g' cleaned.Dockerfile
-            docker build --build-arg IMAGE=dns_stat_agent_ipv6:${CIRCLE_TAG} --tag=cleaned_dns_stat_agent_ipv6:${CIRCLE_TAG} -f cleaned.Dockerfile .
-            docker tag cleaned_dns_stat_agent_ipv6:${CIRCLE_TAG} dns_stat_agent_ipv6:${CIRCLE_TAG}
       - run:
           name: Export dns_stat_agent image to tar file
           command: |
             export AMD_FOLDER_NAME=${CIRCLE_PROJECT_REPONAME}-amd64
             mkdir -p ~/repo/artifacts/${AMD_FOLDER_NAME}/images
             docker save -o ~/repo/artifacts/${AMD_FOLDER_NAME}/images/dns_stat_agent.tar dns_stat_agent:${CIRCLE_TAG}
-            docker save -o ~/repo/artifacts/${AMD_FOLDER_NAME}/images/dns_stat_agent_ipv6.tar dns_stat_agent_ipv6:${CIRCLE_TAG}
       - run:
           name: Check and package
           command: |
