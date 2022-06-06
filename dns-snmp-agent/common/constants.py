@@ -70,7 +70,11 @@ class QryType():
         "QryRTT1600": 12,
         "QryRTT1600+": 13,
         "REFUSED": 14,
-        "OtherError": 15
+        "OtherError": 15,
+        "SuccessfulNoAuthans": 16,
+        "SuccessfulAuthans": 17,
+        "SuccessfulReferral": 18,
+        "SuccessfulRecursive": 19
     }
     METRIC_AVG_TIME = "average_time"
 
