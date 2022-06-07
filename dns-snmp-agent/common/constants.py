@@ -71,21 +71,23 @@ class QryType():
         "QryRTT1600+": 13,
         "REFUSED": 14,
         "OtherError": 15,
-        "SuccessfulNoAuthans": 16,
-        "SuccessfulAuthans": 17,
-        "SuccessfulReferral": 18,
-        "SuccessfulRecursive": 19
+        "Referral": 16,
+        "SuccessfulRecursive": 17,
+        "SuccessfulNoAuthans": 18,
+        "SuccessfulAuthans": 19
     }
     METRIC_AVG_TIME = "average_time"
+
 
 class ErrorMessage():
     """[Error message]
     """
     NOT_FOUND_URL = "No such URL."
 
+
 BLACK_LIST_VIEW = ["_bind"]
-IPV4_PARTERN  = r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:/\d{1,2}|)'
-IPV6SEG  = r'(?:(?:[0-9a-fA-F]){1,4})'
+IPV4_PARTERN = r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:/\d{1,2}|)'
+IPV6SEG = r'(?:(?:[0-9a-fA-F]){1,4})'
 IPV6GROUPS = (
     r'(?:' + IPV6SEG + r':){7,7}' + IPV6SEG,                  # 1:2:3:4:5:6:7:8
     r'(?:' + IPV6SEG + r':){1,7}:',                           # 1::                                 1:2:3:4:5:6:7::

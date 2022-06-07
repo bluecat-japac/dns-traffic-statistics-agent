@@ -127,10 +127,11 @@ BcnDnsBindStatPerViewAgentQryTypes   ::= TEXTUAL-CONVENTION
         bcnStatAgentViewQryRTT1600Plus(13),
         bcnStatAgentViewQryREFUSED(14),
         bcnStatAgentViewQryOtherError(15),
-        bcnStatAgentViewQrySuccessfulNoauthAns(16),
-        bcnStatAgentViewQrySuccessfulAuthAns(17),
-        bcnStatAgentViewQrySuccessfulReferral(18),
-        bcnStatAgentViewQrySuccessfulRecursive(19)
+        bcnStatAgentViewQryReferral(16),
+        bcnStatAgentViewQrySuccessfulRecursive(17),
+        bcnStatAgentViewQrySuccessfulNoauthAns(18),
+        bcnStatAgentViewQrySuccessfulAuthAns(19)
+
     }
 
 -- ***************************************************

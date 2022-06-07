@@ -18,7 +18,7 @@
 import re
 from config import NAMED_PATH_FILE
 from common.constants import StatisticPerType, IPV4_PARTERN, IPV6_PARTERN
-from common.common import FileExcution, is_ip_in_list_cidr
+from common.common import FileExecution, is_ip_in_list_cidr
 
 def get_regex_by_type(per_type):
     regex = ".*"
@@ -90,7 +90,7 @@ class NamedConfiguration():
         self.dns_view = None
 
     def __load_file(self):
-        self.file_excution = FileExcution(NAMED_PATH_FILE)
+        self.file_excution = FileExecution(NAMED_PATH_FILE)
 
     def load_configuration(self):
         self.__load_file()

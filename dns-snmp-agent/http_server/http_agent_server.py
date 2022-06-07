@@ -225,7 +225,7 @@ def reformat_pb_content(pb_request_content):
     list_statistic_data = pb_request_content.get('stats_map', [])
     new_structure_data = []
     for statistic_key in list_statistic_data:
-        data  = list_statistic_data[statistic_key]
+        data = list_statistic_data[statistic_key]
         data.update({"ip_or_view": statistic_key})
         new_structure_data.append(data)
     return new_structure_data
@@ -381,7 +381,6 @@ class AgentServer(BaseHTTPRequestHandler):
         logger.info("Set default zero value for metrics missing")
         cls.set_default_stats()
 
-
     def _repsonse_template(self, code, status):
         """[Prepare content for response]
 
@@ -416,7 +415,6 @@ class AgentServer(BaseHTTPRequestHandler):
                 self.end_headers()
                 response_content = self._repsonse_template(200, 'SUCCESSFUL')
                 self.wfile.write(json.dumps(response_content).encode())
-                logger.debug("List Statistic Data: {}".format(list_statistic_data))
             elif self.path == '/announcement-deploy-from-bam':
                 logger.info("Announcement deploy from bam")
                 NAMED_CONFIGURATION.load_configuration()
@@ -429,7 +427,6 @@ class AgentServer(BaseHTTPRequestHandler):
                 clean_all_table_agent()
                 self.update_mib_stat_counter(list_statistic_data)
                 # self.send_response(200, "SUCCESSFUL")
-                logger.debug("List Statistic Data: {}".format(list_statistic_data))
             else:
                 logger.info("Wrong request url")
                 self.send_response(404, "NOT FOUND")
@@ -442,6 +439,7 @@ class HTTPAgentServer(HTTPServer):
         import socket
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind(self.server_address)
+
 
 def start_http_server(agent_input, table_input):
     """[Start http agent server]

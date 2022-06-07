@@ -85,7 +85,6 @@ type (
 		FormatError         int64    `json:"format_error"`
 		NXRRSet             int64    `json:"nx_rrset"`
 		Referral            int64    `json:"referral"`
-		SuccessfulReferral  int64    `json:"successful_referral"`
 		Refused             int64    `json:"refused"`
 		OtherRcode          int64    `json:"other_rcode"`
 	}
@@ -284,7 +283,7 @@ func ReceivedMessage(msg *model.Record) {
 				IncrDNSStatsSuccessfulNoAuthAns(clientIP)
 				IncrDNSStatsSuccessfulNoAuthAnsForPerView(clientIP)
 			} else {
-			    IncrDNSStatsSuccessfulAuthAnsForPerView(clientIP, metricType)
+			    IncrDNSStatsSuccessfulAuthAnsForPerView(clientIP)
 			}
 
 			if foundNS {
@@ -506,12 +505,12 @@ func IncrDNSStatsSuccessfulNoAuthAnsForPerView(clientIp string) {
 }
 
 // JPC-1645
-func IncrDNSStatsSuccessfulAuthAnsForPerView(clientIp string, metricType string) {
-	if metricType == CLIENT {
+func IncrDNSStatsSuccessfulAuthAnsForPerView(clientIp string) {
+// 	if metricType == CLIENT {
 		if viewName := FindClientInView(clientIp); viewName != "" {
 			atomic.AddInt64(&StatSrv.StatsMap[viewName].DNSMetrics.SuccessfulAuthAns, 1)
 		}
-	}
+// 	}
 }
 
 
@@ -601,6 +600,7 @@ func IncrDNSStatsSuccessfulReferralForPerView(clientIp string, metricType string
 		}
 	}
 }
+
 
 
 func IncrDNSStatsRefused(clientIp string) {
