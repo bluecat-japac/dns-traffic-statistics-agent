@@ -286,10 +286,10 @@ func ReceivedMessage(msg *model.Record) {
 			    IncrDNSStatsSuccessfulAuthAnsForPerView(clientIP)
 			}
 
-			if foundNS {
-// 				IncrDNSStatsSuccessfulReferral(clientIP)
-				IncrDNSStatsSuccessfulReferralForPerView(clientIP, metricType)
-			}
+// 			if foundNS {
+// // 				IncrDNSStatsSuccessfulReferral(clientIP)
+// 				IncrDNSStatsSuccessfulReferralForPerView(clientIP, metricType)
+// 			}
 
 		} else {
 
@@ -592,15 +592,14 @@ func IncrDNSStatsReferralForPerView(clientIp string, metricType string) {
 	}
 }
 
-// JPC-1645
-func IncrDNSStatsSuccessfulReferralForPerView(clientIp string, metricType string) {
-	if metricType == CLIENT {
-		if viewName := FindClientInView(clientIp); viewName != "" {
-			atomic.AddInt64(&StatSrv.StatsMap[viewName].DNSMetrics.SuccessfulReferral, 1)
-		}
-	}
-}
-
+// // JPC-1645
+// func IncrDNSStatsSuccessfulReferralForPerView(clientIp string, metricType string) {
+// 	if metricType == CLIENT {
+// 		if viewName := FindClientInView(clientIp); viewName != "" {
+// 			atomic.AddInt64(&StatSrv.StatsMap[viewName].DNSMetrics.SuccessfulReferral, 1)
+// 		}
+// 	}
+// }
 
 
 func IncrDNSStatsRefused(clientIp string) {
