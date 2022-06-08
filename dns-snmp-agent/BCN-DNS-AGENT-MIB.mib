@@ -88,7 +88,8 @@ BcnDnsStatAgentQryTypes   ::= TEXTUAL-CONVENTION
 		bcnDnsStatAgentQryREFUSED(11),
 		bcnDnsStatAgentQryOtherRcode(12),
         bcnDnsStatAgentQrySuccessfulRecursive(13),
-        bcnDnsStatAgentQrySuccessfulNoauthAns(14)
+        bcnDnsStatAgentQrySuccessfulNoauthAns(14),
+        bcnStatAgentViewQrySuccessfulAuthAns(15)
     }
 
 BcnDnsBindStatPerViewAgentQryTypes   ::= TEXTUAL-CONVENTION
@@ -127,10 +128,7 @@ BcnDnsBindStatPerViewAgentQryTypes   ::= TEXTUAL-CONVENTION
         bcnStatAgentViewQryRTT1600Plus(13),
         bcnStatAgentViewQryREFUSED(14),
         bcnStatAgentViewQryOtherError(15),
-        bcnStatAgentViewQryReferral(16),
-        bcnStatAgentViewQrySuccessfulRecursive(17),
-        bcnStatAgentViewQrySuccessfulNoauthAns(18),
-        bcnStatAgentViewQrySuccessfulAuthAns(19)
+        bcnStatAgentViewQryReferral(16)
 
     }
 

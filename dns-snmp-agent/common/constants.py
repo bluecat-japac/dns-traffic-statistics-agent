@@ -53,7 +53,8 @@ class QryType():
         "refused": 11,
         "other_rcode": 12,
         "successful_recursive": 13,
-        "successful_noauthans": 14
+        "successful_noauthans": 14,
+        "successful_authans": 15
     }
     METRIC_FOR_BIND_VIEW = {
         "totalQueries": 1,
@@ -70,11 +71,7 @@ class QryType():
         "QryRTT1600": 12,
         "QryRTT1600+": 13,
         "REFUSED": 14,
-        "OtherError": 15,
-        "Referral": 16,
-        "SuccessfulRecursive": 17,
-        "SuccessfulNoAuthans": 18,
-        "SuccessfulAuthans": 19
+        "OtherError": 15
     }
     METRIC_AVG_TIME = "average_time"
 
