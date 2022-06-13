@@ -285,7 +285,6 @@ func ReceivedMessage(msg *model.Record) {
 				}
 			}
 
-            // TODO: How to determine successful_referral
 			if foundNS {
 				IncrDNSStatsReferral(clientIP)
 				IncrDNSStatsReferralForPerView(clientIP, metricType)
