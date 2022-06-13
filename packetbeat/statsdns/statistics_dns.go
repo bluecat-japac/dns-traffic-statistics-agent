@@ -260,55 +260,33 @@ func ReceivedMessage(msg *model.Record) {
 	debugf("[ReceivedMessage] ID: %s - transp: %s - responseCode: %s - answersCount: %s", msg.DNS.ID,  msg.Transport, responseCode, answersCount)
 	if responseCode == NOERROR && responseStatus == common.OK_STATUS {
 		debugf("[ReceivedMessage] isTruncated: %s", isTruncated)
-
-		// JPC-1645
-		// Referral: NOERROR, no answer and NS records in Authority
-        var foundNS = false
-        if authoritiesCount > 0 {
-        	debugf("[ReceivedMessage] authoritiesCount: %s", authoritiesCount)
-
-            for _, author := range msg.DNS.Authorities {
-                foundNS = author.Type == RR_NS
-                debugf("[ReceivedMessage] author.Type: %s", author.Type)
-
-                if foundNS {
-                    break
-                }
-            }
-        }
-
 		if answersCount > 0 || isTruncated {
-		    debugf("[ReceivedMessage] answersCount > 0 or isTruncatedddddddddd ")
-
 			// Successful case
 			IncrDNSStatsSuccessful(clientIP)
 			IncrDNSStatsSuccessfulForPerView(clientIP, metricType)
 
-            // JPC-1645
-            debugf("[ReceivedMessage] msg.DNS.Flags: %s ", msg.DNS.Flags)
             debugf("[ReceivedMessage] msg.DNS.Flags.Authoritative: %s ", msg.DNS.Flags.Authoritative)
-
 			if !msg.DNS.Flags.Authoritative {
 				IncrDNSStatsSuccessfulNoAuthAns(clientIP)
 				IncrDNSStatsSuccessfulNoAuthAnsForPerView(clientIP)
 			} else {
-			     debugf("[ReceivedMessage] SuccessfulAuthAnsForPerViewwwwwwwwwwwwwwwwwwwwwwwwwwww ")
 			     IncrDNSStatsSuccessfulAuthAnsForPerView(clientIP, metricType)
 			}
-
-// 			if foundNS {
-// 				IncrDNSStatsSuccessfulReferral(clientIP)
-// 				IncrDNSStatsSuccessfulReferralForPerView(clientIP, metricType)
-// 			}
-
 		} else {
-		    debugf("[ReceivedMessage] answersCount <= 0 and not isTruncatedddddddddd ")
+			// Referral: NOERROR, no answer and NS records in Authority
+			var foundNS = false
+			if authoritiesCount > 0 {
+				for _, author := range msg.DNS.Authorities {
+					foundNS = author.Type == RR_NS
+					debugf("[ReceivedMessage] author.Type: %s", author.Type)
+					if foundNS {
+						break
+					}
+				}
+			}
 
-            // JPC-1645
-            // TODO: JPC-1645: how to determine successful_referral
+            // TODO: How to determine successful_referral
 			if foundNS {
-				debugf("[ReceivedMessage] foundNSSSSSSSSSSSSSSSSSs: %s", foundNS)
-
 				IncrDNSStatsReferral(clientIP)
 				IncrDNSStatsReferralForPerView(clientIP, metricType)
 			} else {
@@ -517,7 +495,6 @@ func IncrDNSStatsSuccessfulNoAuthAnsForPerView(clientIp string) {
 	}
 }
 
-// JPC-1645
 func IncrDNSStatsSuccessfulAuthAnsForPerView(clientIp string, metricType string) {
 	if metricType == CLIENT {
 		if viewName := FindClientInView(clientIp); viewName != "" {
@@ -534,7 +511,6 @@ func IncrDNSStatsSuccessfulRecursive(clientIp string) {
 	atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.SuccessfulRecursive, 1)
 }
 
-// JPC-1645
 func IncrDNSStatsSuccessfulRecursiveForPerView(clientIp string) {
 	if viewName := FindClientInView(clientIp); viewName != "" {
 		atomic.AddInt64(&StatSrv.StatsMap[viewName].DNSMetrics.SuccessfulRecursive, 1)
@@ -604,17 +580,6 @@ func IncrDNSStatsReferralForPerView(clientIp string, metricType string) {
 		}
 	}
 }
-
-// // JPC-1645
-// func IncrDNSStatsSuccessfulReferralForPerView(clientIp string, metricType string) {
-// 	if metricType == CLIENT {
-// 		if viewName := FindClientInView(clientIp); viewName != "" {
-// 			atomic.AddInt64(&StatSrv.StatsMap[viewName].DNSMetrics.SuccessfulReferral, 1)
-// 		}
-// 	}
-// }
-
-
 
 func IncrDNSStatsRefused(clientIp string) {
 	atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.Refused, 1)
