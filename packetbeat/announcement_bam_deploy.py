@@ -21,27 +21,6 @@ Informations(IP, port) need match with:
     - Packetbeat: statistics_config.json
 """
 import httplib
-import os
-import re
-
-NAMED_PATH = '/replicated/jail/named/etc/named.conf'
-
-
-class StatisticPerType():
-    """[Statistic type]
-    """
-    CLIENT = "perClient"
-    SERVER = "perServer"
-
-
-def get_regex_by_type(per_type):
-    regex = ".*"
-    if per_type == StatisticPerType.CLIENT:
-        regex = "acl _TrafficStatisticsAgent_Clients.*{\s(.+).*}"
-    elif per_type == StatisticPerType.SERVER:
-        regex = "acl _TrafficStatisticsAgent_Servers.*{\s(.+).*}"
-    return regex
-
 
 # Request to Agent HTTP
 try:
@@ -52,14 +31,7 @@ except Exception as ex:
 
 # Request to Packetbeat HTTP server
 try:
-    if os.path.exists(NAMED_PATH):
-        named_f = open(NAMED_PATH, "r")
-        contents = named_f.read()
-        named_f.close()
-        check_acl_client = True if re.findall(get_regex_by_type(StatisticPerType.CLIENT), contents) else False
-        check_acl_server = True if re.findall(get_regex_by_type(StatisticPerType.SERVER), contents) else False
-        if check_acl_client and check_acl_server:
-            conn = httplib.HTTPConnection("127.0.0.1", 51416)
-            conn.request("GET", "/announcement-deploy-from-bam")
+    conn = httplib.HTTPConnection("127.0.0.1", 51416)
+    conn.request("GET", "/announcement-deploy-from-bam")
 except Exception as ex:
     pass
