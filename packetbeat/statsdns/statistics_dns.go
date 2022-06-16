@@ -22,6 +22,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"os"
 
 	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/logp"
@@ -184,11 +185,11 @@ func onLoadReqMaps() {
 func IsValidInACL(statIP string, metricType string) bool {
 	switch metricType {
 	case CLIENT:
-		if utils.CheckIPInRanges(statIP, IpNetsClient, IpsClient) {
+		if !(os.Getenv("ENABLE_PER_CLIENT_TRAFFIC_STATS") == "false") && utils.CheckIPInRanges(statIP, IpNetsClient, IpsClient) {
 			return true
 		}
 	case AUTHSERVER:
-		if utils.CheckIPInRanges(statIP, IpNetsServer, IpsServer) {
+		if !(os.Getenv("ENABLE_PER_CLIENT_TRAFFIC_STATS") == "false") && utils.CheckIPInRanges(statIP, IpNetsServer, IpsServer) {
 			return true
 		}
 	case VIEW:
