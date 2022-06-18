@@ -88,7 +88,8 @@ BcnDnsStatAgentQryTypes   ::= TEXTUAL-CONVENTION
 		bcnDnsStatAgentQryREFUSED(11),
 		bcnDnsStatAgentQryOtherRcode(12),
         bcnDnsStatAgentQrySuccessfulRecursive(13),
-        bcnDnsStatAgentQrySuccessfulNoauthAns(14)
+        bcnDnsStatAgentQrySuccessfulNoauthAns(14),
+        bcnDnsStatAgentQrySuccessfulAuthAns(15)
     }
 
 BcnDnsBindStatPerViewAgentQryTypes   ::= TEXTUAL-CONVENTION

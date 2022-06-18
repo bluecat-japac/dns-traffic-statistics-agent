@@ -1,4 +1,4 @@
-Copyright 2020 BlueCat Networks (USA) Inc. and its affiliates
+Copyright 2022 BlueCat Networks (USA) Inc. and its affiliates
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ Unused protocols have been commented out to optimize performance.
 - publish/publish.go
 - sniffer/sniffer.go
 - main.go
- 
+
 Default configuration in packetbeat.yml has been modified:
  - comments added for used transaction protocol configuration
  - a limit set for CPU core usage
@@ -80,7 +80,7 @@ under the License.
 
 
 
-This product includes software developed by The Apache Software 
+This product includes software developed by The Apache Software
 Foundation (http://www.apache.org/).
 
 ==========================================================================
@@ -326,7 +326,7 @@ Apache License 2.0
 
 -------NOTICE-----
 GoFormation
-Copyright 2011-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved. 
+Copyright 2011-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 
 --------------------------------------------------------------------
 Dependency: github.com/Azure/azure-sdk-for-go
@@ -1158,14 +1158,14 @@ License type (autodetected): Apache-2.0
 Apache License 2.0
 
 -------NOTICE-----
-Copyright (c) [2009-2011] VMware, Inc. All Rights Reserved. 
+Copyright (c) [2009-2011] VMware, Inc. All Rights Reserved.
 
-This product is licensed to you under the Apache License, Version 2.0 (the "License").  
-You may not use this product except in compliance with the License.  
+This product is licensed to you under the Apache License, Version 2.0 (the "License").
+You may not use this product except in compliance with the License.
 
 This product includes a number of subcomponents with
 separate copyright notices and license terms. Your use of these
-subcomponents is subject to the terms and conditions of the 
+subcomponents is subject to the terms and conditions of the
 subcomponent's license, as noted in the LICENSE file.
 --------------------------------------------------------------------
 Dependency: github.com/fatih/color
@@ -1442,7 +1442,7 @@ Mozilla Public License Version 2.0
     means any form of the work other than Source Code Form.
 
 1.7. "Larger Work"
-    means a work that combines Covered Software with other material, in 
+    means a work that combines Covered Software with other material, in
     a separate file or files, that is not Covered Software.
 
 1.8. "License"

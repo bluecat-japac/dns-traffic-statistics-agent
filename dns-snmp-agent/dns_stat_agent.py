@@ -193,17 +193,17 @@ def main():
     ###
     #	Start agent
     ###
-    version = "v2.9.3"
-    logger.info("Start DNS Statistic Agent verion {}".format(version))
-    http_proccess = None
+    version = "v2.9.4"
+    logger.info("Start DNS Statistic Agent version {}".format(version))
+    http_process = None
     try:
         agent, mib_table = initialize(prg_name)
         agent.start()
         logger.info(
             "{0}: AgentX connection to snmpd established.".format(prg_name))
-        http_proccess = threading.Thread(target=start_http_server,
+        http_process = threading.Thread(target=start_http_server,
                                          args=(agent, mib_table))
-        http_proccess.start()
+        http_process.start()
     except netsnmpagent.netsnmpAgentException as netsnmp_agent_exception:
         logger.error("{0}: {1}".format(prg_name, netsnmp_agent_exception))
         agent.shutdown()
@@ -221,9 +221,9 @@ def main():
     finally:
         logger.info("Shutdown agent")
         agent.shutdown()
-        if http_proccess is not None:
-            logger.info("Join http_proccess thread")
-            http_proccess.join()
+        if http_process is not None:
+            logger.info("Join http_process thread")
+            http_process.join()
 
 
 if __name__ == "__main__":

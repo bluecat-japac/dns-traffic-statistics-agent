@@ -53,7 +53,8 @@ class QryType():
         "refused": 11,
         "other_rcode": 12,
         "successful_recursive": 13,
-        "successful_noauthans": 14
+        "successful_noauthans": 14,
+        "successful_authans": 15
     }
     METRIC_FOR_BIND_VIEW = {
         "totalQueries": 1,
@@ -74,14 +75,16 @@ class QryType():
     }
     METRIC_AVG_TIME = "average_time"
 
+
 class ErrorMessage():
     """[Error message]
     """
     NOT_FOUND_URL = "No such URL."
 
+
 BLACK_LIST_VIEW = ["_bind"]
-IPV4_PARTERN  = r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:/\d{1,2}|)'
-IPV6SEG  = r'(?:(?:[0-9a-fA-F]){1,4})'
+IPV4_PARTERN = r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:/\d{1,2}|)'
+IPV6SEG = r'(?:(?:[0-9a-fA-F]){1,4})'
 IPV6GROUPS = (
     r'(?:' + IPV6SEG + r':){7,7}' + IPV6SEG,                  # 1:2:3:4:5:6:7:8
     r'(?:' + IPV6SEG + r':){1,7}:',                           # 1::                                 1:2:3:4:5:6:7::

@@ -75,14 +75,14 @@ def is_ip_in_list_cidr(ip, list_cidr):
     return False
 
 
-class FileExcution():
+class FileExecution():
     def __init__(self, file_path):
         self.contents = self.__read_file(file_path)
 
     def __read_file(self, file_path):
         if not os.path.exists(file_path):
             return None
-        f = open(file_path ,"r")
+        f = open(file_path, "r")
         contents = f.read()
         f.close()
         return contents

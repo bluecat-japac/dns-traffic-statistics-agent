@@ -225,7 +225,7 @@ def reformat_pb_content(pb_request_content):
     list_statistic_data = pb_request_content.get('stats_map', [])
     new_structure_data = []
     for statistic_key in list_statistic_data:
-        data  = list_statistic_data[statistic_key]
+        data = list_statistic_data[statistic_key]
         data.update({"ip_or_view": statistic_key})
         new_structure_data.append(data)
     return new_structure_data
@@ -381,7 +381,6 @@ class AgentServer(BaseHTTPRequestHandler):
         logger.info("Set default zero value for metrics missing")
         cls.set_default_stats()
 
-
     def _repsonse_template(self, code, status):
         """[Prepare content for response]
 
@@ -411,7 +410,7 @@ class AgentServer(BaseHTTPRequestHandler):
                 self.update_mib_stat_counter(list_statistic_data)
 
                 # Response
-                logger.info("Reponse to client")
+                logger.info("Response to client")
                 self.send_response(200)
                 self.end_headers()
                 response_content = self._repsonse_template(200, 'SUCCESSFUL')
@@ -435,11 +434,12 @@ class AgentServer(BaseHTTPRequestHandler):
                 logger.error(traceback.format_exc())
 
 
-class HTTPAgnetServer(HTTPServer):
+class HTTPAgentServer(HTTPServer):
     def server_bind(self):
         import socket
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind(self.server_address)
+
 
 def start_http_server(agent_input, table_input):
     """[Start http agent server]
@@ -463,7 +463,7 @@ def start_http_server(agent_input, table_input):
         MIB_TABLE[TableOidStr.STAT_PER_CLIENT]["table_value"] = MIB_TABLE[TableOidStr.STAT_PER_CLIENT]["table"].value()
         MIB_TABLE[TableOidStr.STAT_PER_SERVER]["table_value"] = MIB_TABLE[TableOidStr.STAT_PER_SERVER]["table"].value()
         MIB_TABLE[TableOidStr.STAT_PER_VIEW]["table_value"] = MIB_TABLE[TableOidStr.STAT_PER_VIEW]["table"].value()
-        httpd = HTTPAgnetServer(
+        httpd = HTTPAgentServer(
             (HTTP_CONFIGURATION['host'], HTTP_CONFIGURATION['port']), AgentServer)
         httpd.allow_reuse_address = True
         httpd.serve_forever()

@@ -22,6 +22,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"os"
 
 	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/logp"
@@ -76,6 +77,7 @@ type (
 		Recursive           int64    `json:"recursive"`
 		SuccessfulRecursive int64    `json:"successful_recursive"`
 		SuccessfulNoAuthAns int64    `json:"successful_noauthans"`
+		SuccessfulAuthAns   int64    `json:"successful_authans"`
 		Duplicated          int64    `json:"duplicated"`
 		AverageTime         *float64 `json:"average_time"`
 		Successful          int64    `json:"successful"`
@@ -183,11 +185,11 @@ func onLoadReqMaps() {
 func IsValidInACL(statIP string, metricType string) bool {
 	switch metricType {
 	case CLIENT:
-		if utils.CheckIPInRanges(statIP, IpNetsClient, IpsClient) {
+		if !(os.Getenv("ENABLE_PER_CLIENT_TRAFFIC_STATS") == "false") && utils.CheckIPInRanges(statIP, IpNetsClient, IpsClient) {
 			return true
 		}
 	case AUTHSERVER:
-		if utils.CheckIPInRanges(statIP, IpNetsServer, IpsServer) {
+		if !(os.Getenv("ENABLE_PER_CLIENT_TRAFFIC_STATS") == "false") && utils.CheckIPInRanges(statIP, IpNetsServer, IpsServer) {
 			return true
 		}
 	case VIEW:
@@ -263,9 +265,13 @@ func ReceivedMessage(msg *model.Record) {
 			// Successful case
 			IncrDNSStatsSuccessful(clientIP)
 			IncrDNSStatsSuccessfulForPerView(clientIP, metricType)
+
+            debugf("[ReceivedMessage] msg.DNS.Flags.Authoritative: %s ", msg.DNS.Flags.Authoritative)
 			if !msg.DNS.Flags.Authoritative {
 				IncrDNSStatsSuccessfulNoAuthAns(clientIP)
 				IncrDNSStatsSuccessfulNoAuthAnsForPerView(clientIP)
+			} else {
+			     IncrDNSStatsSuccessfulAuthAnsForPerView(clientIP, metricType)
 			}
 		} else {
 			// Referral: NOERROR, no answer and NS records in Authority
@@ -273,6 +279,7 @@ func ReceivedMessage(msg *model.Record) {
 			if authoritiesCount > 0 {
 				for _, author := range msg.DNS.Authorities {
 					foundNS = author.Type == RR_NS
+					debugf("[ReceivedMessage] author.Type: %s", author.Type)
 					if foundNS {
 						break
 					}
@@ -487,6 +494,15 @@ func IncrDNSStatsSuccessfulNoAuthAnsForPerView(clientIp string) {
 		atomic.AddInt64(&StatSrv.StatsMap[viewName].DNSMetrics.SuccessfulNoAuthAns, 1)
 	}
 }
+
+func IncrDNSStatsSuccessfulAuthAnsForPerView(clientIp string, metricType string) {
+	if metricType == CLIENT {
+		if viewName := FindClientInView(clientIp); viewName != "" {
+			atomic.AddInt64(&StatSrv.StatsMap[viewName].DNSMetrics.SuccessfulAuthAns, 1)
+		}
+	}
+}
+
 
 func IncrDNSStatsSuccessfulRecursive(clientIp string) {
 	if !newStats(clientIp, CLIENT) {
