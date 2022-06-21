@@ -247,6 +247,9 @@ func ReceivedMessage(msg *model.Record) {
 	authoritiesCount := msg.DNS.AuthoritiesCount
 	responseStatus := msg.Status
 
+	// First message for this client/AS
+	newStats(clientIP, metricType)
+
 	defer func() {
 		if err := recover(); err != nil {
 			QStatDNS.PushRecordDNS(msg)
