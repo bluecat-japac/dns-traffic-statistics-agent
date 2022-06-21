@@ -255,7 +255,8 @@ func ReceivedMessage(msg *model.Record) {
 		}
 	}()
 
-    IncrDNSStatsTotalResponses(clientIP)
+	// Increase TotalResponse
+	IncrDNSStatsTotalResponses(clientIP)
 	if metricType != AUTHSERVER {
         ResponseForPerView(clientIP)
     }
@@ -377,10 +378,9 @@ func Queries(srcIp string, dstIp string) {
 			return
 		}
 	}()
-
-    if statIP := CreateCounterMetric(srcIp, dstIp, QUERY); statIP != "" {
-        IncrDNSStatsTotalQueries(statIP)
-    }
+	if statIP := CreateCounterMetric(srcIp, dstIp, QUERY); statIP != "" {
+		IncrDNSStatsTotalQueries(statIP)
+	}
 }
 
 func QueriesForPerView(srcIp string) {
@@ -392,9 +392,9 @@ func QueriesForPerView(srcIp string) {
 }
 
 func Response(srcIp string, dstIp string) {
-    if statIP := CreateCounterMetric(srcIp, dstIp, RESPONSE); statIP != "" {
-        IncrDNSStatsTotalResponses(statIP)
-    }
+	if statIP := CreateCounterMetric(srcIp, dstIp, RESPONSE); statIP != "" {
+		IncrDNSStatsTotalResponses(statIP)
+	}
 }
 
 func ResponseForPerView(dstIp string) {
@@ -454,10 +454,10 @@ func IncrDNSStatsTotalResponses(clientIp string) {
 }
 
 func IncrDNSStatsRecursive(clientIp string) {
-    if !newStats(clientIp, CLIENT) {
-        return
-    }
-    atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.Recursive, 1)
+	if !newStats(clientIp, CLIENT) {
+		return
+	}
+	atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.Recursive, 1)
 }
 
 func IncrDNSStatsRecursiveForPerView(clientIp string) {
@@ -516,10 +516,10 @@ func IncrDNSStatsSuccessfulAuthAnsForPerView(clientIp string, metricType string)
 
 
 func IncrDNSStatsSuccessfulRecursive(clientIp string) {
-    if !newStats(clientIp, CLIENT) {
-        return
-    }
-    atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.SuccessfulRecursive, 1)
+	if !newStats(clientIp, CLIENT) {
+		return
+	}
+	atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.SuccessfulRecursive, 1)
 }
 
 func IncrDNSStatsSuccessfulRecursiveForPerView(clientIp string) {
@@ -557,9 +557,9 @@ func IncrDNSStatsNXDomainForPerView(clientIp string, metricType string) {
 }
 
 func IncrDNSStatsFormatError(clientIp string) {
-    if !utils.IsLocalIP(clientIp) && newStats(clientIp, CLIENT) {
-        atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.FormatError, 1)
-    }
+	if !utils.IsLocalIP(clientIp) && newStats(clientIp, CLIENT) {
+		atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.FormatError, 1)
+	}
 }
 
 func IncrDNSStatsFormatErrorForPerView(clientIp string, metricType string) {
@@ -828,7 +828,7 @@ func existQuery(rqKey, rqItem, metricType string) bool {
 func HandleRequestDecodeErr(clientIP, srvIP string) {
 	if !utils.IsInternalCall(clientIP, srvIP) {
 		if statIP := CreateCounterMetric(srvIP, clientIP, QUERY); statIP != "" {
-            IncrDNSStatsTotalQueries(statIP)
+			IncrDNSStatsTotalQueries(statIP)
 			IncrDNSStatsTotalQueriesForPerView(statIP)
 		}
 	}
@@ -837,7 +837,7 @@ func HandleRequestDecodeErr(clientIP, srvIP string) {
 func HandleResponseDecodeErr(clientIP, srvIP string, RCodeString string) {
 	if !utils.IsInternalCall(clientIP, srvIP) {
 		if statIP := CreateCounterMetric(srvIP, clientIP, RESPONSE); statIP != "" {
-            IncrDNSStatsTotalResponses(statIP)
+			IncrDNSStatsTotalResponses(statIP)
 			ResponseForPerView(statIP)
 			if RCodeString == FORMERR {
 				IncrDNSStatsFormatError(statIP)
