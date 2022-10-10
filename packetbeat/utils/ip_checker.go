@@ -64,26 +64,26 @@ func IsInternalCall(srcIp string, dstIp string) bool {
 
 // Get all local ip
 func GetAllLocalIP() (addr []string, err error) {
-	ifaces, err := net.Interfaces()
+    ifaces, err := net.Interfaces()
     if err != nil {
         return
     }
-	var result []string
+    var result []string
     for _, i := range ifaces {
         addrs, err := i.Addrs()
         if err != nil {
             continue
         }
         for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-			result = append(result, ip.String())
-		}
+            var ip net.IP
+            switch v := addr.(type) {
+            case *net.IPNet:
+                ip = v.IP
+            case *net.IPAddr:
+                ip = v.IP
+            }
+            result = append(result, ip.String())
+        }
     }
-	return result, nil
+    return result, nil
 }
