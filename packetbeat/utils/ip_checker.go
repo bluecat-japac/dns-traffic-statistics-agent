@@ -1,5 +1,5 @@
 // Copyright 2019 BlueCat Networks (USA) Inc. and its affiliates
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -16,10 +16,9 @@ package utils
 
 import (
 	"net"
-	"strings"
+
 )
 
-var localAddrs, _ = net.InterfaceAddrs()
 
 func CheckIPInRange(IP string, ipNet *net.IPNet) bool {
 	return ipNet.Contains(net.ParseIP(IP))
@@ -49,8 +48,9 @@ func CheckIpRangeFromString(IP string, ipRange string) bool {
 
 // Check if the IP Address is the local IP Address
 func IsLocalIP(ip string) bool {
+	localAddrs, _ := GetAllLocalIP()
 	for _, addr := range localAddrs {
-		if strings.Contains(addr.String(), ip) {
+		if addr == ip {
 			return true
 		}
 	}
@@ -60,4 +60,30 @@ func IsLocalIP(ip string) bool {
 // Check if both of source and destination IP Address are the local IP Address
 func IsInternalCall(srcIp string, dstIp string) bool {
 	return IsLocalIP(srcIp) && IsLocalIP(dstIp)
+}
+
+// Get all local ip
+func GetAllLocalIP() (addr []string, err error) {
+	ifaces, err := net.Interfaces()
+    if err != nil {
+        return
+    }
+	var result []string
+    for _, i := range ifaces {
+        addrs, err := i.Addrs()
+        if err != nil {
+            continue
+        }
+        for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			result = append(result, ip.String())
+		}
+    }
+	return result, nil
 }
