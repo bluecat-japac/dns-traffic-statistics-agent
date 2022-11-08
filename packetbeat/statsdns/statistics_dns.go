@@ -112,8 +112,8 @@ var (
 	QStatDNS                     *QueueStatDNS
 	IsActive                     bool
 	StatHTTPServerAddr           string
-	LocalAddrs				 	 []net.Addr
-	TimeStartAnycast			 string
+	LocalAddrs                   []net.Addr
+	TimeRestartAnycast           string
 )
 
 func InitStatisticsDNS() {
@@ -130,19 +130,19 @@ func InitStatisticsDNS() {
 
 	// check time restart anycast service => 
 	LocalAddrs, _ = net.InterfaceAddrs()
-	TimeStartAnycast = GetTimeReStartAnycast()
+	TimeRestartAnycast = GetTimeReStartAnycast()
 	go func() {
 		checktimeTicker := time.NewTicker(1 * time.Second)
 		defer checktimeTicker.Stop()
 		for {
 			select {
 			case <-checktimeTicker.C:
-				currentTimeStartAnycast := GetTimeReStartAnycast()
-				if currentTimeStartAnycast != TimeStartAnycast {
+				currentTimeReStartAnycast := GetTimeReStartAnycast()
+				if currentTimeReStartAnycast != TimeRestartAnycast {
 					logp.Info("Update Local Addresses: - Old Addresses: %v ", LocalAddrs)
 					LocalAddrs, _ = net.InterfaceAddrs()
 					logp.Info("Update Local Addresses: - New Addresses: %v ", LocalAddrs)
-					TimeStartAnycast = currentTimeStartAnycast
+					TimeRestartAnycast = currentTimeReStartAnycast
 				}
 			}
 		}
