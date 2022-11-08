@@ -22,6 +22,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"os"
 	"os/exec"
 
 	"github.com/elastic/beats/libbeat/common"
