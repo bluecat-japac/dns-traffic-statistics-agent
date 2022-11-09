@@ -140,9 +140,8 @@ func InitStatisticsDNS() {
 			case <-checktimeTicker.C:
 				currentTimeReStartAnycast := GetTimeReStartAnycast()
 				if currentTimeReStartAnycast != TimeRestartAnycast {
-					logp.Info("Update Local Addresses: - Old Addresses: %v ", LocalAddrs)
 					LocalAddrs, _ = net.InterfaceAddrs()
-					logp.Info("Update Local Addresses: - New Addresses: %v ", LocalAddrs)
+					logp.Info("Local Addresses: %v ", LocalAddrs)
 					TimeRestartAnycast = currentTimeReStartAnycast
 				}
 			}
