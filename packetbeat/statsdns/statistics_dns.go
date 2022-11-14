@@ -18,12 +18,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
-	"os"
-	"os/exec"
+
+	"github.com/fsnotify/fsnotify"
 
 	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/logp"
@@ -51,6 +52,7 @@ const (
 	RESPONSE   = "Response"
 	RQ_ERR_MAP = "Formerr"
 	NXRRSET    = "NXRRSET"
+	DAEMONS_PATH = "/etc/quagga/daemons"
 )
 
 var (
@@ -114,7 +116,6 @@ var (
 	IsActive                     bool
 	StatHTTPServerAddr           string
 	LocalAddrs                   []net.Addr
-	TimeRestartAnycast           string
 )
 
 func InitStatisticsDNS() {
@@ -129,26 +130,59 @@ func InitStatisticsDNS() {
 	QStatDNS.isPopWait = true
 	IsActive = true
 
-	// check time restart anycast service => 
 	LocalAddrs, _ = net.InterfaceAddrs()
-	TimeRestartAnycast = GetTimeReStartAnycast()
 	go func() {
-		checktimeTicker := time.NewTicker(1 * time.Second)
-		defer checktimeTicker.Stop()
-		for {
-			select {
-			case <-checktimeTicker.C:
-				currentTimeReStartAnycast := GetTimeReStartAnycast()
-				if currentTimeReStartAnycast != TimeRestartAnycast {
-					LocalAddrs, _ = net.InterfaceAddrs()
-					logp.Info("Local Addresses: %v ", LocalAddrs)
-					TimeRestartAnycast = currentTimeReStartAnycast
+		// check anycast service
+		watcher, err := fsnotify.NewWatcher()
+		if err != nil {
+			logp.Error(err)
+		}
+		defer watcher.Close()
+		
+		go func() {
+			for {
+				select {
+				case event, ok := <-watcher.Events:
+					if !ok {
+						return
+					}
+					if event.Op&fsnotify.Write == fsnotify.Write {
+						currentLocalAddrs, _ := net.InterfaceAddrs()
+						if !Equal(currentLocalAddrs, LocalAddrs) {
+							logp.Info("Local Addresses: %v ", LocalAddrs)
+							LocalAddrs = currentLocalAddrs
+							return
+						}
+
+						number := 1
+						for Equal(currentLocalAddrs, LocalAddrs) {
+							if number > 5 {
+								break;
+							}
+
+							time.Sleep(1 * time.Second)
+							currentLocalAddrs, _ = net.InterfaceAddrs()
+							if !Equal(currentLocalAddrs, LocalAddrs) {
+								logp.Info("Local Addresses: %v ", currentLocalAddrs)
+								LocalAddrs = currentLocalAddrs
+								break
+							}
+						}
+					}
+				case err, ok := <-watcher.Errors:
+					if !ok {
+						return
+					}
+					logp.Error(err)
 				}
 			}
-		}
-	}()
+		}()
 
-	go func() {
+		err = watcher.Add(DAEMONS_PATH)
+		if err != nil {
+			logp.Error(err)
+		}
+
 		ticker := time.NewTicker(StatInterval * time.Second)
 		defer ticker.Stop()
 		go func() {
@@ -192,20 +226,28 @@ func Stop() {
 
 // Check if the IP Address is the local IP Address
 func IsLocalIP(ip string) bool {
-    for _, addr := range LocalAddrs {
+	for _, addr := range LocalAddrs {
 		if strings.SplitN(addr.String(), "/", 2)[0] == ip {
-		    return true
+			return true
 		}
 	}
 	return false
 }
 
-func GetTimeReStartAnycast() string{
-	time, err := exec.Command("/bin/sh", "-c", "cat /etc/quagga/daemons| grep -o -P \"(?<=Date :).*(?= ---)\"").Output()
-	if err != nil {
-		return ""
+func Equal(first, second []net.Addr) bool {
+	if len(first) != len(second) {
+		return false
 	}
-	return string(time)
+	exists := make(map[string]bool)
+	for _, value := range first {
+		exists[value.String()] = true
+	}
+	for _, value := range second {
+		if !exists[value.String()] {
+			return false
+		}
+	}
+	return true
 }
 
 
@@ -266,10 +308,10 @@ func newStats(clientIp string, metricType string) bool {
 }
 
 func EnablePerClient() bool {
-    if os.Getenv("ENABLE_PER_CLIENT_TRAFFIC_STATS") == "false" {
-        return false
-    }
-    return true
+	if os.Getenv("ENABLE_PER_CLIENT_TRAFFIC_STATS") == "false" {
+		return false
+	}
+	return true
 }
 
 
@@ -294,7 +336,7 @@ func ReceivedMessage(msg *model.Record) {
 	authoritiesCount := msg.DNS.AuthoritiesCount
 	responseStatus := msg.Status
 
-    // First message for this client/AS
+	// First message for this client/AS
 	newStats(clientIP, metricType)
 
 	defer func() {
@@ -308,8 +350,8 @@ func ReceivedMessage(msg *model.Record) {
 	// Increase TotalResponse
 	IncrDNSStatsTotalResponses(clientIP)
 	if metricType != AUTHSERVER {
-        ResponseForPerView(clientIP)
-    }
+		ResponseForPerView(clientIP)
+	}
 
 	debugf("[ReceivedMessage] ID: %s - transp: %s - responseCode: %s - answersCount: %s", msg.DNS.ID,  msg.Transport, responseCode, answersCount)
 	if responseCode == NOERROR && responseStatus == common.OK_STATUS {
@@ -319,12 +361,12 @@ func ReceivedMessage(msg *model.Record) {
 			IncrDNSStatsSuccessful(clientIP)
 			IncrDNSStatsSuccessfulForPerView(clientIP, metricType)
 
-            debugf("[ReceivedMessage] msg.DNS.Flags.Authoritative: %s ", msg.DNS.Flags.Authoritative)
+			debugf("[ReceivedMessage] msg.DNS.Flags.Authoritative: %s ", msg.DNS.Flags.Authoritative)
 			if !msg.DNS.Flags.Authoritative {
 				IncrDNSStatsSuccessfulNoAuthAns(clientIP)
 				IncrDNSStatsSuccessfulNoAuthAnsForPerView(clientIP)
 			} else {
-			     IncrDNSStatsSuccessfulAuthAnsForPerView(clientIP, metricType)
+				IncrDNSStatsSuccessfulAuthAnsForPerView(clientIP, metricType)
 			}
 		} else {
 			// Referral: NOERROR, no answer and NS records in Authority
@@ -486,9 +528,9 @@ func IncreaseQueryCounterForPerView(srcIp string, dstIp string, mode string) {
 }
 
 func IncrDNSStatsTotalQueries(clientIp string) {
-    if _, exist := StatSrv.StatsMap[clientIp]; exist {
-        atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.TotalQueries, 1)
-    }
+	if _, exist := StatSrv.StatsMap[clientIp]; exist {
+		atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.TotalQueries, 1)
+	}
 }
 
 func IncrDNSStatsTotalQueriesForPerView(clientIp string) {
@@ -498,9 +540,9 @@ func IncrDNSStatsTotalQueriesForPerView(clientIp string) {
 }
 
 func IncrDNSStatsTotalResponses(clientIp string) {
-    if _, exist := StatSrv.StatsMap[clientIp]; exist {
-        atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.TotalResponses, 1)
-    }
+	if _, exist := StatSrv.StatsMap[clientIp]; exist {
+		atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.TotalResponses, 1)
+	}
 }
 
 func IncrDNSStatsRecursive(clientIp string) {
@@ -531,9 +573,9 @@ func IncrDNSStatsDuplicatedForPerView(clientIp string) {
 }
 
 func IncrDNSStatsSuccessful(clientIp string) {
-    if _, exist := StatSrv.StatsMap[clientIp]; exist {
-        atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.Successful, 1)
-    }
+	if _, exist := StatSrv.StatsMap[clientIp]; exist {
+		atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.Successful, 1)
+	}
 }
 
 func IncrDNSStatsSuccessfulForPerView(clientIp string, metricType string) {
@@ -545,9 +587,9 @@ func IncrDNSStatsSuccessfulForPerView(clientIp string, metricType string) {
 }
 
 func IncrDNSStatsSuccessfulNoAuthAns(clientIp string) {
-    if _, exist := StatSrv.StatsMap[clientIp]; exist {
-        atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.SuccessfulNoAuthAns, 1)
-    }
+	if _, exist := StatSrv.StatsMap[clientIp]; exist {
+		atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.SuccessfulNoAuthAns, 1)
+	}
 }
 
 func IncrDNSStatsSuccessfulNoAuthAnsForPerView(clientIp string) {
@@ -579,9 +621,9 @@ func IncrDNSStatsSuccessfulRecursiveForPerView(clientIp string) {
 }
 
 func IncrDNSStatsServerFail(clientIp string) {
-    if _, exist := StatSrv.StatsMap[clientIp]; exist {
-        atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.ServerFail, 1)
-    }
+	if _, exist := StatSrv.StatsMap[clientIp]; exist {
+		atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.ServerFail, 1)
+	}
 }
 
 func IncrDNSStatsServerFailForPerView(clientIp string, metricType string) {
@@ -593,9 +635,9 @@ func IncrDNSStatsServerFailForPerView(clientIp string, metricType string) {
 }
 
 func IncrDNSStatsNXDomain(clientIp string) {
-    if _, exist := StatSrv.StatsMap[clientIp]; exist {
-        atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.NXDomain, 1)
-    }
+	if _, exist := StatSrv.StatsMap[clientIp]; exist {
+		atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.NXDomain, 1)
+	}
 }
 
 func IncrDNSStatsNXDomainForPerView(clientIp string, metricType string) {
@@ -623,9 +665,9 @@ func IncrDNSStatsFormatErrorForPerView(clientIp string, metricType string) {
 }
 
 func IncrDNSStatsNXRRSet(clientIp string) {
-    if _, exist := StatSrv.StatsMap[clientIp]; exist {
-        atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.NXRRSet, 1)
-    }
+	if _, exist := StatSrv.StatsMap[clientIp]; exist {
+		atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.NXRRSet, 1)
+	}
 }
 
 func IncrDNSStatsNXRRSetForPerView(clientIp string, metricType string) {
@@ -637,9 +679,9 @@ func IncrDNSStatsNXRRSetForPerView(clientIp string, metricType string) {
 }
 
 func IncrDNSStatsReferral(clientIp string) {
-    if _, exist := StatSrv.StatsMap[clientIp]; exist {
-        atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.Referral, 1)
-    }
+	if _, exist := StatSrv.StatsMap[clientIp]; exist {
+		atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.Referral, 1)
+	}
 }
 
 func IncrDNSStatsReferralForPerView(clientIp string, metricType string) {
@@ -651,9 +693,9 @@ func IncrDNSStatsReferralForPerView(clientIp string, metricType string) {
 }
 
 func IncrDNSStatsRefused(clientIp string) {
-    if _, exist := StatSrv.StatsMap[clientIp]; exist {
-        atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.Refused, 1)
-    }
+	if _, exist := StatSrv.StatsMap[clientIp]; exist {
+		atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.Refused, 1)
+	}
 }
 
 func IncrDNSStatsRefusedForPerView(clientIp string, metricType string) {
@@ -665,9 +707,9 @@ func IncrDNSStatsRefusedForPerView(clientIp string, metricType string) {
 }
 
 func IncrDNSStatsOtherRCode(clientIp string) {
-    if _, exist := StatSrv.StatsMap[clientIp]; exist {
-        atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.OtherRcode, 1)
-    }
+	if _, exist := StatSrv.StatsMap[clientIp]; exist {
+		atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.OtherRcode, 1)
+	}
 }
 
 func IncrDNSStatsOtherRCodeForPerView(clientIp string, metricType string) {
