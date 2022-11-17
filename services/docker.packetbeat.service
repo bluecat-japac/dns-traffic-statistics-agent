@@ -14,6 +14,7 @@ ExecStart=/usr/bin/docker run --rm --cap-add=NET_ADMIN                          
                               --name $NAME                                                              \
                               -v /replicated/jail/named/etc/:/replicated/jail/named/etc/                \
                               -v /var/log/packetbeat/:/var/log/packetbeat/                              \
+                              -v /etc/quagga/daemons:/etc/quagga/daemons                                \
                               $IMAGE_NAME
 ExecStop=-/usr/bin/docker stop   $NAME
 

@@ -42,7 +42,6 @@ import (
 	"github.com/elastic/beats/packetbeat/protos"
 
 	"github.com/elastic/beats/packetbeat/statsdns"
-	"github.com/elastic/beats/packetbeat/utils"
 	mkdns "github.com/miekg/dns"
 	"golang.org/x/net/publicsuffix"
 )
@@ -325,7 +324,7 @@ func (dns *dnsPlugin) receivedDNSRequest(tuple *dnsTuple, msg *dnsMessage) {
 	isDuplicated := false
 
 	// Don't receive internal DNS request
-	if utils.IsInternalCall(srcIP, dstIP) {
+	if statsdns.IsInternalCall(srcIP, dstIP) {
 		return
 	}
 
@@ -381,7 +380,7 @@ func (dns *dnsPlugin) receivedDNSResponse(tuple *dnsTuple, msg *dnsMessage) {
 	dstIP := msg.tuple.DstIP.String()
 	isDrop := false
 	// Don't receive internal DNS response
-	if utils.IsInternalCall(srcIP, dstIP) {
+	if statsdns.IsInternalCall(srcIP, dstIP) {
 		return
 	}
 

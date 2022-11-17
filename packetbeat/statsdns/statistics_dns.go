@@ -18,11 +18,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
-	"os"
+
+	"github.com/fsnotify/fsnotify"
 
 	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/logp"
@@ -50,6 +52,7 @@ const (
 	RESPONSE   = "Response"
 	RQ_ERR_MAP = "Formerr"
 	NXRRSET    = "NXRRSET"
+	DAEMONS_PATH = "/etc/quagga/daemons"
 )
 
 var (
@@ -112,6 +115,7 @@ var (
 	QStatDNS                     *QueueStatDNS
 	IsActive                     bool
 	StatHTTPServerAddr           string
+	LocalAddrs                   []net.Addr
 )
 
 func InitStatisticsDNS() {
@@ -126,7 +130,59 @@ func InitStatisticsDNS() {
 	QStatDNS.isPopWait = true
 	IsActive = true
 
+	LocalAddrs, _ = net.InterfaceAddrs()
 	go func() {
+		// check anycast service
+		watcher, err := fsnotify.NewWatcher()
+		if err != nil {
+			logp.Error(err)
+		}
+		defer watcher.Close()
+		
+		go func() {
+			for {
+				select {
+				case event, ok := <-watcher.Events:
+					if !ok {
+						return
+					}
+					if event.Op&fsnotify.Write == fsnotify.Write {
+						currentLocalAddrs, _ := net.InterfaceAddrs()
+						if !Equal(currentLocalAddrs, LocalAddrs) {
+							logp.Info("Local Addresses: %v ", LocalAddrs)
+							LocalAddrs = currentLocalAddrs
+							return
+						}
+
+						number := 1
+						for Equal(currentLocalAddrs, LocalAddrs) {
+							if number > 5 {
+								break;
+							}
+
+							time.Sleep(1 * time.Second)
+							currentLocalAddrs, _ = net.InterfaceAddrs()
+							if !Equal(currentLocalAddrs, LocalAddrs) {
+								logp.Info("Local Addresses: %v ", currentLocalAddrs)
+								LocalAddrs = currentLocalAddrs
+								break
+							}
+						}
+					}
+				case err, ok := <-watcher.Errors:
+					if !ok {
+						return
+					}
+					logp.Error(err)
+				}
+			}
+		}()
+
+		err = watcher.Add(DAEMONS_PATH)
+		if err != nil {
+			logp.Error(err)
+		}
+
 		ticker := time.NewTicker(StatInterval * time.Second)
 		defer ticker.Stop()
 		go func() {
@@ -167,6 +223,39 @@ func Stop() {
 	IsActive = false
 	QStatDNS.Stop()
 }
+
+// Check if the IP Address is the local IP Address
+func IsLocalIP(ip string) bool {
+	for _, addr := range LocalAddrs {
+		if strings.SplitN(addr.String(), "/", 2)[0] == ip {
+			return true
+		}
+	}
+	return false
+}
+
+func Equal(first, second []net.Addr) bool {
+	if len(first) != len(second) {
+		return false
+	}
+	exists := make(map[string]bool)
+	for _, value := range first {
+		exists[value.String()] = true
+	}
+	for _, value := range second {
+		if !exists[value.String()] {
+			return false
+		}
+	}
+	return true
+}
+
+
+// Check if both of source and destination IP Address are the local IP Address
+func IsInternalCall(srcIp string, dstIp string) bool {
+	return IsLocalIP(srcIp) && IsLocalIP(dstIp)
+}
+
 
 func onLoadReqMaps() {
 	// Load default RequestMap in ReqMaps array
@@ -230,12 +319,12 @@ func ReceivedMessage(msg *model.Record) {
 	mutex.Lock()
 	defer mutex.Unlock()
 	// Don't want to be calculating the internal messages
-	if utils.IsInternalCall(msg.Src.IP, msg.Dst.IP) {
+	if IsInternalCall(msg.Src.IP, msg.Dst.IP) {
 		return
 	}
 	metricType := CLIENT
 	clientIP := msg.Src.IP
-	if utils.IsLocalIP(clientIP) {
+	if IsLocalIP(clientIP) {
 		metricType = AUTHSERVER
 		clientIP = msg.Dst.IP
 	}
@@ -329,7 +418,7 @@ func ReceivedMessage(msg *model.Record) {
 }
 
 func CheckMetricType(srcIp string, dstIp string, mode string) (statIP string, metricType string) {
-	if utils.IsLocalIP(dstIp) {
+	if IsLocalIP(dstIp) {
 		statIP = srcIp
 		switch mode {
 		case QUERY:
@@ -387,7 +476,7 @@ func Queries(srcIp string, dstIp string) {
 }
 
 func QueriesForPerView(srcIp string) {
-	if !utils.IsLocalIP(srcIp) {
+	if !IsLocalIP(srcIp) {
 		if viewName := FindClientInView(srcIp); viewName != "" {
 			IncrDNSStatsTotalQueries(viewName)
 		}
@@ -401,7 +490,7 @@ func Response(srcIp string, dstIp string) {
 }
 
 func ResponseForPerView(dstIp string) {
-	if !utils.IsLocalIP(dstIp) {
+	if !IsLocalIP(dstIp) {
 		if viewName := FindClientInView(dstIp); viewName != "" {
 			IncrDNSStatsTotalResponses(viewName)
 		}
@@ -409,7 +498,7 @@ func ResponseForPerView(dstIp string) {
 }
 
 func IncreaseQueryCounter(srcIp string, dstIp string, mode string) {
-	// if utils.IsInternalCall(srcIp, dstIp) {
+	// if IsInternalCall(srcIp, dstIp) {
 	// 	return
 	// }
 	mutex.Lock()
@@ -425,7 +514,7 @@ func IncreaseQueryCounter(srcIp string, dstIp string, mode string) {
 }
 
 func IncreaseQueryCounterForPerView(srcIp string, dstIp string, mode string) {
-	// if utils.IsInternalCall(srcIp, dstIp) {
+	// if IsInternalCall(srcIp, dstIp) {
 	// 	return
 	// }
 	switch mode {
@@ -470,13 +559,13 @@ func IncrDNSStatsRecursiveForPerView(clientIp string) {
 }
 
 func IncrDNSStatsDuplicated(clientIp string) {
-	if !utils.IsLocalIP(clientIp) && newStats(clientIp, CLIENT) {
+	if !IsLocalIP(clientIp) && newStats(clientIp, CLIENT) {
 		atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.Duplicated, 1)
 	}
 }
 
 func IncrDNSStatsDuplicatedForPerView(clientIp string) {
-	if !utils.IsLocalIP(clientIp) {
+	if !IsLocalIP(clientIp) {
 		if viewName := FindClientInView(clientIp); viewName != "" {
 			atomic.AddInt64(&StatSrv.StatsMap[viewName].DNSMetrics.Duplicated, 1)
 		}
@@ -560,7 +649,7 @@ func IncrDNSStatsNXDomainForPerView(clientIp string, metricType string) {
 }
 
 func IncrDNSStatsFormatError(clientIp string) {
-	if !utils.IsLocalIP(clientIp) && newStats(clientIp, CLIENT) {
+	if !IsLocalIP(clientIp) && newStats(clientIp, CLIENT) {
 		atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.FormatError, 1)
 	}
 }
@@ -568,7 +657,7 @@ func IncrDNSStatsFormatError(clientIp string) {
 func IncrDNSStatsFormatErrorForPerView(clientIp string, metricType string) {
 	if metricType == CLIENT {
 		if viewName := FindClientInView(clientIp); viewName != "" {
-			if !utils.IsLocalIP(clientIp) && newStats(viewName, VIEW) {
+			if !IsLocalIP(clientIp) && newStats(viewName, VIEW) {
 				atomic.AddInt64(&StatSrv.StatsMap[viewName].DNSMetrics.FormatError, 1)
 			}
 		}
@@ -750,12 +839,12 @@ func ReloadNamedData(isInit bool) {
 func AddRequestMsgMap(clientIP, srvIP string, reqID uint16, questions []mkdns.Question) {
 	// mutex.Lock()
 	// defer mutex.Unlock()
-	if len(questions) > 0 && !utils.IsInternalCall(clientIP, srvIP) {
+	if len(questions) > 0 && !IsInternalCall(clientIP, srvIP) {
 		for _, question := range questions {
 			var rqItem string
 			var metricType string
 			rqKey := genKeyItem(question)
-			if !utils.IsLocalIP(clientIP) {
+			if !IsLocalIP(clientIP) {
 				metricType = RQ_C_MAP
 				rqItem = genValueItem(reqID, clientIP, question)
 			} else {
@@ -780,14 +869,14 @@ func AddRequestMsgMap(clientIP, srvIP string, reqID uint16, questions []mkdns.Qu
 func CalculateRecursiveMsg(clientIP, srvIP string, reqID uint16, questions []mkdns.Question, dnsMsg *mkdns.Msg) {
 	// mutex.Lock()
 	// defer mutex.Unlock()
-	if len(questions) > 0 && !utils.IsInternalCall(clientIP, srvIP) {
+	if len(questions) > 0 && !IsInternalCall(clientIP, srvIP) {
 		for _, question := range questions {
 			rqKey := genKeyItem(question)
 			if !existQuery(rqKey, rqKey, RQ_S_MAP) {
 				continue
 			}
 			rqItem := genValueItem(reqID, clientIP, question)
-			if !existQuery(rqKey, rqItem, RQ_C_MAP) || utils.IsLocalIP(clientIP) {
+			if !existQuery(rqKey, rqItem, RQ_C_MAP) || IsLocalIP(clientIP) {
 				continue
 			}
 			isSuccess := false
@@ -829,7 +918,7 @@ func existQuery(rqKey, rqItem, metricType string) bool {
 }
 
 func HandleRequestDecodeErr(clientIP, srvIP string) {
-	if !utils.IsInternalCall(clientIP, srvIP) {
+	if !IsInternalCall(clientIP, srvIP) {
 		if statIP := CreateCounterMetric(srvIP, clientIP, QUERY); statIP != "" {
 			IncrDNSStatsTotalQueries(statIP)
 			IncrDNSStatsTotalQueriesForPerView(statIP)
@@ -838,7 +927,7 @@ func HandleRequestDecodeErr(clientIP, srvIP string) {
 }
 
 func HandleResponseDecodeErr(clientIP, srvIP string, RCodeString string) {
-	if !utils.IsInternalCall(clientIP, srvIP) {
+	if !IsInternalCall(clientIP, srvIP) {
 		if statIP := CreateCounterMetric(srvIP, clientIP, RESPONSE); statIP != "" {
 			IncrDNSStatsTotalResponses(statIP)
 			ResponseForPerView(statIP)
