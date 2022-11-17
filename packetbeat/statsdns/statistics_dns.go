@@ -308,10 +308,10 @@ func newStats(clientIp string, metricType string) bool {
 }
 
 func EnablePerClient() bool {
-	if os.Getenv("ENABLE_PER_CLIENT_TRAFFIC_STATS") == "false" {
-		return false
-	}
-	return true
+    if os.Getenv("ENABLE_PER_CLIENT_TRAFFIC_STATS") == "false" {
+        return false
+    }
+    return true
 }
 
 
@@ -350,8 +350,8 @@ func ReceivedMessage(msg *model.Record) {
 	// Increase TotalResponse
 	IncrDNSStatsTotalResponses(clientIP)
 	if metricType != AUTHSERVER {
-		ResponseForPerView(clientIP)
-	}
+        ResponseForPerView(clientIP)
+    }
 
 	debugf("[ReceivedMessage] ID: %s - transp: %s - responseCode: %s - answersCount: %s", msg.DNS.ID,  msg.Transport, responseCode, answersCount)
 	if responseCode == NOERROR && responseStatus == common.OK_STATUS {
@@ -361,12 +361,12 @@ func ReceivedMessage(msg *model.Record) {
 			IncrDNSStatsSuccessful(clientIP)
 			IncrDNSStatsSuccessfulForPerView(clientIP, metricType)
 
-			debugf("[ReceivedMessage] msg.DNS.Flags.Authoritative: %s ", msg.DNS.Flags.Authoritative)
+            debugf("[ReceivedMessage] msg.DNS.Flags.Authoritative: %s ", msg.DNS.Flags.Authoritative)
 			if !msg.DNS.Flags.Authoritative {
 				IncrDNSStatsSuccessfulNoAuthAns(clientIP)
 				IncrDNSStatsSuccessfulNoAuthAnsForPerView(clientIP)
 			} else {
-				IncrDNSStatsSuccessfulAuthAnsForPerView(clientIP, metricType)
+			     IncrDNSStatsSuccessfulAuthAnsForPerView(clientIP, metricType)
 			}
 		} else {
 			// Referral: NOERROR, no answer and NS records in Authority
@@ -528,9 +528,9 @@ func IncreaseQueryCounterForPerView(srcIp string, dstIp string, mode string) {
 }
 
 func IncrDNSStatsTotalQueries(clientIp string) {
-	if _, exist := StatSrv.StatsMap[clientIp]; exist {
-		atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.TotalQueries, 1)
-	}
+    if _, exist := StatSrv.StatsMap[clientIp]; exist {
+        atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.TotalQueries, 1)
+    }
 }
 
 func IncrDNSStatsTotalQueriesForPerView(clientIp string) {
@@ -540,9 +540,9 @@ func IncrDNSStatsTotalQueriesForPerView(clientIp string) {
 }
 
 func IncrDNSStatsTotalResponses(clientIp string) {
-	if _, exist := StatSrv.StatsMap[clientIp]; exist {
-		atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.TotalResponses, 1)
-	}
+    if _, exist := StatSrv.StatsMap[clientIp]; exist {
+        atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.TotalResponses, 1)
+    }
 }
 
 func IncrDNSStatsRecursive(clientIp string) {
@@ -573,9 +573,9 @@ func IncrDNSStatsDuplicatedForPerView(clientIp string) {
 }
 
 func IncrDNSStatsSuccessful(clientIp string) {
-	if _, exist := StatSrv.StatsMap[clientIp]; exist {
-		atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.Successful, 1)
-	}
+    if _, exist := StatSrv.StatsMap[clientIp]; exist {
+        atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.Successful, 1)
+    }
 }
 
 func IncrDNSStatsSuccessfulForPerView(clientIp string, metricType string) {
@@ -587,9 +587,9 @@ func IncrDNSStatsSuccessfulForPerView(clientIp string, metricType string) {
 }
 
 func IncrDNSStatsSuccessfulNoAuthAns(clientIp string) {
-	if _, exist := StatSrv.StatsMap[clientIp]; exist {
-		atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.SuccessfulNoAuthAns, 1)
-	}
+    if _, exist := StatSrv.StatsMap[clientIp]; exist {
+        atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.SuccessfulNoAuthAns, 1)
+    }
 }
 
 func IncrDNSStatsSuccessfulNoAuthAnsForPerView(clientIp string) {
@@ -621,9 +621,9 @@ func IncrDNSStatsSuccessfulRecursiveForPerView(clientIp string) {
 }
 
 func IncrDNSStatsServerFail(clientIp string) {
-	if _, exist := StatSrv.StatsMap[clientIp]; exist {
-		atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.ServerFail, 1)
-	}
+    if _, exist := StatSrv.StatsMap[clientIp]; exist {
+        atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.ServerFail, 1)
+    }
 }
 
 func IncrDNSStatsServerFailForPerView(clientIp string, metricType string) {
@@ -635,9 +635,9 @@ func IncrDNSStatsServerFailForPerView(clientIp string, metricType string) {
 }
 
 func IncrDNSStatsNXDomain(clientIp string) {
-	if _, exist := StatSrv.StatsMap[clientIp]; exist {
-		atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.NXDomain, 1)
-	}
+    if _, exist := StatSrv.StatsMap[clientIp]; exist {
+        atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.NXDomain, 1)
+    }
 }
 
 func IncrDNSStatsNXDomainForPerView(clientIp string, metricType string) {
@@ -665,9 +665,9 @@ func IncrDNSStatsFormatErrorForPerView(clientIp string, metricType string) {
 }
 
 func IncrDNSStatsNXRRSet(clientIp string) {
-	if _, exist := StatSrv.StatsMap[clientIp]; exist {
-		atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.NXRRSet, 1)
-	}
+    if _, exist := StatSrv.StatsMap[clientIp]; exist {
+        atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.NXRRSet, 1)
+    }
 }
 
 func IncrDNSStatsNXRRSetForPerView(clientIp string, metricType string) {
@@ -679,9 +679,9 @@ func IncrDNSStatsNXRRSetForPerView(clientIp string, metricType string) {
 }
 
 func IncrDNSStatsReferral(clientIp string) {
-	if _, exist := StatSrv.StatsMap[clientIp]; exist {
-		atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.Referral, 1)
-	}
+    if _, exist := StatSrv.StatsMap[clientIp]; exist {
+        atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.Referral, 1)
+    }
 }
 
 func IncrDNSStatsReferralForPerView(clientIp string, metricType string) {
@@ -693,9 +693,9 @@ func IncrDNSStatsReferralForPerView(clientIp string, metricType string) {
 }
 
 func IncrDNSStatsRefused(clientIp string) {
-	if _, exist := StatSrv.StatsMap[clientIp]; exist {
-		atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.Refused, 1)
-	}
+    if _, exist := StatSrv.StatsMap[clientIp]; exist {
+        atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.Refused, 1)
+    }
 }
 
 func IncrDNSStatsRefusedForPerView(clientIp string, metricType string) {
@@ -707,9 +707,9 @@ func IncrDNSStatsRefusedForPerView(clientIp string, metricType string) {
 }
 
 func IncrDNSStatsOtherRCode(clientIp string) {
-	if _, exist := StatSrv.StatsMap[clientIp]; exist {
-		atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.OtherRcode, 1)
-	}
+    if _, exist := StatSrv.StatsMap[clientIp]; exist {
+        atomic.AddInt64(&StatSrv.StatsMap[clientIp].DNSMetrics.OtherRcode, 1)
+    }
 }
 
 func IncrDNSStatsOtherRCodeForPerView(clientIp string, metricType string) {
