@@ -156,7 +156,7 @@ func InitStatisticsDNS() {
 
 						number := 1
 						for Equal(currentLocalAddrs, LocalAddrs) {
-							if number > 30 {
+							if number > 60 {
 								break;
 							}
 
