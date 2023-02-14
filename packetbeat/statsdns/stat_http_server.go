@@ -62,4 +62,5 @@ func shutdown(ctx context.Context, server *http.Server) {
 	if err := server.Shutdown(ctx); err != nil {
 		panic(err)
 	}
+	logp.Info("HTTP Packetbeat Server shutdowned gracefully")
 }
