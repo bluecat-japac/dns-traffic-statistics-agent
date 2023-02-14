@@ -16,7 +16,12 @@ package statsdns
 
 import (
 	"fmt"
+	"os"
+	"time"
+	"context"
+	"syscall"
 	"net/http"
+	"os/signal"
 
 	"github.com/elastic/beats/libbeat/logp"
 )
