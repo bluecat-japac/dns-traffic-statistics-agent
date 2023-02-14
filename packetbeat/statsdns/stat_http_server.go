@@ -56,12 +56,10 @@ func start(server *http.Server) {
 }
 
 func shutdown(ctx context.Context, server *http.Server) {
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
 		panic(err)
-	} else {
-		logp.Info("HTTP Packetbeat Server shutdowned gracefully")
 	}
 }
