@@ -38,8 +38,8 @@ func onLoadHTTPServer() {
 	http.HandleFunc(uriAnnouncementFromBam, reqAnnouncementDeployFromBam)
 	s := &http.Server{Addr: StatHTTPServerAddr, Handler: nil}
 	go start(s)
-	stopCh, closeCh := createChannel()
-	defer closeCh()
+	stopCh, closeChFunc := createChannel()
+	defer closeChFunc()
 	<-stopCh
 	shutdown(context.Background(), s)
 }
