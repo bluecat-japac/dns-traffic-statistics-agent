@@ -5,6 +5,7 @@ Requires=docker.service  docker.dns_stat_agent.service
 
 [Service]
 type=simple
+Restart=always
 Environment=IMAGE_NAME='dns_packetbeat:<TAG_RELEASE>'                       \
             NAME='dns_packetbeat'
 ExecStartPre=-/usr/bin/docker stop   $NAME      2> /dev/null || true
