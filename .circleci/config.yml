@@ -2,7 +2,7 @@ version: 2
 jobs:
   build-packetbeat-binary:
     docker:
-      - image: debian:stretch
+      - image: debian:bullseye
     environment:
       BEAT_VERSION: v6.5.4
       GO_TGZ: go1.10.8.linux-amd64.tar.gz
