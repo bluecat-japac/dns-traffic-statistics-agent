@@ -66,7 +66,7 @@ else:
 
 handler = TimedRotatingFileHandler(LOG_PATH + "/" + LOG_NAME, when="midnight", interval=1, backupCount=30)
 handler.suffix = "%Y%m%d"
-handler.extMatch = re.compile(r"^\d{4}\d{2}\d{2}$")
+handler.extMatch = re.compile(r"^\d{4}\d{2}\d{2}(\.\w+)?$")
 
 log_formater = logging.Formatter("%(asctime)s:%(levelname)s:%(message)s")
 handler.setFormatter(log_formater)
