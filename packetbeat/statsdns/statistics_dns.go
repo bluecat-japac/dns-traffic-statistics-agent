@@ -762,16 +762,18 @@ func FindClientInView(clientIP string) string {
 				//Ingore case
 				if strings.Contains(matchIP, "!") {
 					// Case for Ignore IP range
+					matchIp := strings.TrimLeft(matchIP, "!")
 					// If / character in matchIP
 					if strings.Contains(matchIP, "/") {
-						if utils.CheckIpRangeFromString(clientIP, matchIP) {
+						_, ipNet, _ := net.ParseCIDR(matchIp)
+						if ipNet.Contains(net.ParseIP(clientIP)) {
 							result = ""
 							foundView = true
 							break
 						}
 					}
 					//Case for Ignore IP
-					if strings.Contains(matchIP, clientIP) {
+					if matchIp == clientIP {
 						result = ""
 						foundView = true
 						break
@@ -826,7 +828,7 @@ func ReloadNamedData(isInit bool) {
 
 	logp.Info("IPs Range In ACL Server: %v", IpNetsServer)
 	logp.Info("IPs Range In ACL Client: %v", IpNetsClient)
-	logp.Info("IP In ACL Server: %v", IpsServer)
+	logp.Info("IPs In ACL Server: %v", IpsServer)
 	logp.Info("IPs In ACL Client: %v", IpsClient)
 	logp.Info("Map View Client IPs %v", MapViewIPs)
 
