@@ -63,8 +63,7 @@ else:
     logger = logging.getLogger("stat_counter_agent")
     logger.setLevel(logging.INFO)
 
-handler = TimedRotatingFileHandler(
-    LOG_PATH + "/" + LOG_NAME, when="midnight", interval=1)
+handler = TimedRotatingFileHandler(LOG_PATH + "/" + LOG_NAME, when="midnight", interval=1, backupCount=30)
 handler.suffix = "%Y%m%d"
 handler.extMatch = re.compile(r"^\d{4}\d{2}\d{2}$")
 
